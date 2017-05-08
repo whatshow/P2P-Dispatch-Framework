@@ -42,6 +42,7 @@ jspm_packages
 /Resource/ppdf/node_modules/
 node_modules/
 npm-debug.log
+*.jpg
 *.iml
 .idea/
 .ipr
