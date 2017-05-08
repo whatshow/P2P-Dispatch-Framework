@@ -35,3 +35,27 @@ jspm_packages
 
 # Optional REPL history
 .node_repl_history
+
+＃自定义内容
+/node_modules/
+/Resource/ppdf/dist
+/Resource/ppdf/node_modules/
+node_modules/
+npm-debug.log
+*.iml
+.idea/
+.ipr
+.iws
+*~
+~*
+*.diff
+*.patch
+*.bak
+.DS_Store
+Thumbs.db
+.project
+.*proj
+.svn/
+*.swp
+*.swo
+*.log
