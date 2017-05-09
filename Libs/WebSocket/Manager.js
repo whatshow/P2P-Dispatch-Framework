@@ -187,15 +187,80 @@ module.exports = {
     },
 
     /**
-     * 转发desc
+     * 转发请求desc
      * @ws                      websocket连接对象
      * @address                 目标地址
      * @desc                    目标描述信息
      */
-    transferDesc:   function(ws, desc){
-
+    transferOfferDesc:   function(ws, address, desc){
+      var i;
+      var address2Send;
+      //找到发送方
+      for(i = 0; i < global.clients.length; i++){
+        if(global.clients[i].match(ws)){
+          address2Send = global.clients[i].getAddress();
+          break;
+        }
+      }
+      //找到接收方
+      for(i = 0; i < global.clients.length; i++){
+        //找到了
+        if(global.clients[i].match(address)){
+          var msg = {
+            code:               1003,
+            data:{
+              source:{
+                address:        address2Send
+              },
+              desc:             desc
+            }
+          };
+          console.warn("通知另外一方的本地描述（Offer）");
+          console.warn(msg);
+          global.clients[i].obj.send(JSON.stringify(msg));
+          break;
+        }
+      }
     },
-
+    /**
+     * 转发响应Desc
+     * @ws                      websocket连接对象
+     * @address                 目标地址
+     * @desc                    目标描述信息
+     */
+    transferAnswerDesc: function(ws, address, desc){
+      var i;
+      var address2Send;
+      //找到发送方
+      for(i = 0; i < global.clients.length; i++){
+        if(global.clients[i].match(ws)){
+          address2Send = global.clients[i].getAddress();
+          break;
+        }
+      }
+      //找到接收方
+      for(i = 0; i < global.clients.length; i++){
+        //找到了
+        if(global.clients[i].match(address)){
+          var msg = {
+            code:               1004,
+            data:{
+              source:{
+                address:        address2Send
+              },
+              desc:             desc
+            }
+          };
+          console.warn("通知另外一方的描述（Answer）");
+          console.warn(msg);
+          global.clients[i].obj.send(JSON.stringify(msg));
+          break;
+        }
+      }
+    },
+    /**
+     * 转发候选信息
+     */
 
 
     /**

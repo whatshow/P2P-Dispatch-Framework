@@ -112,7 +112,8 @@
                  */
                 getClient:  function(){
                     var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-                    return new RTCPeerConnection(window.ppdf.config.p2p);
+                    //return new RTCPeerConnection(window.ppdf.config.p2p);
+                    return new RTCPeerConnection(null, null);
                 },
                 /**
                  * 构建描述对象
@@ -133,6 +134,41 @@
                         );
                     });
                 },
+                /**
+                 * 响应描述
+                 * @client
+                 * @desc
+                 */
+                answerDesc: function(client, desc){
+                  console.log("接收描述");
+                  console.log(desc);
+                  
+                  return new Promise(function(resolve, reject){
+                    client.setRemoteDescription(desc);
+                    client.createAnswer().then(
+                      function(desc){
+                        //保存desc
+                        client.setLocalDescription(desc);
+                        //进入下一个状态
+                        resolve(desc);
+                      },
+                      function onCreateSessionDescriptionError(error){
+                        reject(new ppdf.Utils.Error(40023, "发起连接请求失败", error));
+                      }
+                    );
+                  });
+                },
+                /**
+                 * 保存远程描述
+                 * @client
+                 * @desc
+                 */
+                storeRemoteAnswerDesc: function(client, desc){
+                  return new Promise(function(resolve, reject){
+                    client.setRemoteDescription(desc);
+                    resolve();
+                  });
+                }
             }
         };
     }

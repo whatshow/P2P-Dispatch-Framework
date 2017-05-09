@@ -53,11 +53,11 @@ function createConnection() {
   sendChannel.binaryType = 'arraybuffer';
   trace('Created send data channel');
 
-  sendChannel.onopen = onSendChannelStateChange;
-  sendChannel.onclose = onSendChannelStateChange;
-  //localConnection.onicecandidate = function(e) {
-  //  onIceCandidate(localConnection, e);
-  //};
+  //sendChannel.onopen = onSendChannelStateChange;
+  //sendChannel.onclose = onSendChannelStateChange;
+  localConnection.onicecandidate = function(e) {
+   onIceCandidate(localConnection, e);
+  };
 
   localConnection.createOffer().then(
     gotDescription1,

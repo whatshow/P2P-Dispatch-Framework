@@ -123,6 +123,9 @@ var ServerManager = {
     onMsg:  function(req, flag){
       var i, j;
       var client = this;
+      
+      var address;
+      var desc;
       //找到这个client
       try{
         var msg = JSON.parse(req);
@@ -137,6 +140,27 @@ var ServerManager = {
           case 3002:
                 //通知客户端，这些资源该怎么找
                 WSCtrl.manager.findClients2AcquireData(client, msg.data);
+                break;
+          //转发提供描述
+          case 3003:
+                try{
+                  //获取地址、描述信息
+                  address = msg.data.target.address;
+                  desc = msg.data.desc;
+                  //调用方法
+                  WSCtrl.manager.transferOfferDesc(client, address, desc);
+                }catch (e){
+                  //获取内容报错
+                }
+                break;
+          //转发响应描述
+          case 3004:
+                try{
+                  address = msg.data.target.address;
+                  desc = msg.data.desc;
+                  //调用方法
+                  WSCtrl.manager.transferAnswerDesc(client, address, desc);
+                }catch (e){}
                 break;
         }
       }catch(e){}
