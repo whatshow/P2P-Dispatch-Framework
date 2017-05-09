@@ -13,11 +13,32 @@
 
     //p2p客户端
     var p2pClient = window.ppdf.p2p.test.getClient();
+    var needResourceURL;                                                //需要的资源路径
+    var targetAddress;
     var sendChannel;
+    var receiveChannel;
     //收到候选信息后执行的操作
     p2pClient.onicecandidate = function(e) {
-      console.warn("接受到候选信息");
-      console.log(e);
+      //如果构造出来了候选客户端，则发送
+      if(e.candidate){
+        console.warn("目标地址");
+        console.log(targetAddress);
+        console.warn("发送候选信息");
+        //console.log(e.candidate);
+        //构造信息
+        var msg = {
+          code:                 3005,
+          data:{
+            target: {
+              address:          targetAddress
+            },
+            candidate:          e.candidate
+          }
+        };
+        //发送
+        window.ppdf.signal.send(JSON.stringify(msg));
+        console.log(msg);
+      }
     };
 
 
@@ -227,43 +248,35 @@
                 
                 //向对方发送索取数据请求
                 var msg = {
-                  data:       3201
+                  code:       3201,
+                  data: {
+                    target: {
+                      address: res.data.reqs[0].clients[0]
+                    }
+                  }
                 };
-                
-                // //开始创建通道
-                // sendChannel = p2pClient.createDataChannel('sendDataChannel');
-                // sendChannel.binaryType = 'arraybuffer';
-                // console.log("创建数据通道");
-                // console.log(sendChannel);
-                //
-                // //开始构建描述
-                // window.ppdf.p2p.test.startDesc(p2pClient).then(function(desc){
-                //     console.warn("请求描述");
-                //     console.log(desc.sdp);
-                //     //把对应的p2p客户端发送到服务器
-                //     var msg = {
-                //       code:           3003,
-                //       data: {
-                //         target:{
-                //           address:    res.data.reqs[0].clients[0]
-                //         },
-                //         desc:         desc
-                //       }
-                //     };
-                //     window.ppdf.signal.send(JSON.stringify(msg));
-                //     console.warn("发送本地描述");
-                //     console.warn(msg);
-                // }).catch(function(e){
-                //     console.error('p2p通讯故障');
-                //     console.error(e);
-                // });
+                window.ppdf.signal.send(JSON.stringify(msg));
+                console.warn("发送数据索取请求");
+                console.log(msg);
                 break;
             //收到请求描述信息
             case 1003:
-  
+                //保存请求地址
+                targetAddress = res.data.source.address;
+              
                 //构建接受通道
                 p2pClient.ondatachannel = function(e) {
-                  console.log(e);
+                  //保存数据通道
+                  receiveChannel = e.channel;
+                  receiveChannel.binaryType = 'arraybuffer';
+                  receiveChannel.onmessage = function(e){
+                    //console.log(e);
+                    console.warn("接收到p2p数据");
+                    var blob = new Blob([event.data]);
+                    var data = window.URL.createObjectURL(blob);
+                    //找到source
+                    sources[0].obj.setAttribute('src', data);
+                  }
                 };
               
                 //保存描述
@@ -301,6 +314,60 @@
                 break;
             //收到候选信息
             case 1005:
+                console.warn("*****接收到候选信息");
+                console.log(res.data.candidate);
+                //把icecandidate添加到自己
+                p2pClient.addIceCandidate(res.data.candidate);
+                break;
+            //收到数据索取请求
+            case 1201:
+                //保存目标地址
+                targetAddress = res.data.source.address;
+              
+                //发起p2p请求
+                //建立数据传输通道
+                sendChannel = p2pClient.createDataChannel('sendDataChannel');
+                sendChannel.binaryType = 'arraybuffer';
+                sendChannel.onopen = function(e){
+                  var readyState = sendChannel.readyState;
+                  if (readyState === 'open') {
+                    console.error("准备发送数据");
+                    window.ppdf.database.getData("http://192.168.50.158:10000/img/1.jpeg").then(function(dbRes){
+                      console.log(dbRes);
+                      //转成二进制发送
+                      window.ppdf.Utils.file.blob2binary(dbRes.data).then(function(binaryData){
+                        sendChannel.send(binaryData);
+                      });
+                    });
+                  }
+                };
+                sendChannel.onclose = function(e){
+                  var readyState = sendChannel.readyState;
+                };
+                
+                console.log("创建数据通道");
+                console.log(sendChannel);
+                //构建发起描述
+                window.ppdf.p2p.test.startDesc(p2pClient).then(function(desc){
+                    console.warn("请求描述");
+                    console.log(desc.sdp);
+                    //把对应的p2p客户端发送到服务器
+                    var msg = {
+                      code:           3003,
+                      data: {
+                        target:{
+                          address:    res.data.source.address
+                        },
+                        desc:         desc
+                      }
+                    };
+                    window.ppdf.signal.send(JSON.stringify(msg));
+                    console.warn("发送本地描述");
+                    console.warn(msg);
+                }).catch(function(e){
+                    console.error('p2p通讯故障');
+                    console.error(e);
+                });
                 break;
         }
     }

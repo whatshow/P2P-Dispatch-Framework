@@ -40,7 +40,7 @@
                 }
             }
         };
-
+        /*** 资源 ***/
         window.ppdf.Utils.resource = {
             //收集的资源形如
             // [{
@@ -91,11 +91,24 @@
              * 检测是否支持文件操作
              */
             isSupported: function(){
-                if(window.Blob){
+                if(window.Blob && window.FileReader){
                     return true;
                 }else{
                     return false;
                 }
+            },
+            /**
+             * blob转二进制
+             * @blob                二进制数据
+             */
+            blob2binary:  function(blob) {
+              return new Promise(function(resolve, reject){
+                var fileReader = new FileReader();
+                fileReader.readAsArrayBuffer(blob);
+                fileReader.onload = function(e) {
+                  resolve(this.result);
+                }
+              });
             }
         };
         //ajax
