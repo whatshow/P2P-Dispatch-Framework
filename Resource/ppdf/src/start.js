@@ -225,33 +225,38 @@
                   return;
                 }
                 
-                //开始创建通道
-                sendChannel = p2pClient.createDataChannel('sendDataChannel');
-                sendChannel.binaryType = 'arraybuffer';
-                console.log("创建数据通道");
-                console.log(sendChannel);
-              
-                //开始构建描述
-                window.ppdf.p2p.test.startDesc(p2pClient).then(function(desc){
-                    console.warn("请求描述");
-                    console.log(desc.sdp);
-                    //把对应的p2p客户端发送到服务器
-                    var msg = {
-                      code:           3003,
-                      data: {
-                        target:{
-                          address:    res.data.reqs[0].clients[0]
-                        },
-                        desc:         desc
-                      }
-                    };
-                    window.ppdf.signal.send(JSON.stringify(msg));
-                    console.warn("发送本地描述");
-                    console.warn(msg);
-                }).catch(function(e){
-                    console.error('p2p通讯故障');
-                    console.error(e);
-                });
+                //向对方发送索取数据请求
+                var msg = {
+                  data:       3201
+                };
+                
+                // //开始创建通道
+                // sendChannel = p2pClient.createDataChannel('sendDataChannel');
+                // sendChannel.binaryType = 'arraybuffer';
+                // console.log("创建数据通道");
+                // console.log(sendChannel);
+                //
+                // //开始构建描述
+                // window.ppdf.p2p.test.startDesc(p2pClient).then(function(desc){
+                //     console.warn("请求描述");
+                //     console.log(desc.sdp);
+                //     //把对应的p2p客户端发送到服务器
+                //     var msg = {
+                //       code:           3003,
+                //       data: {
+                //         target:{
+                //           address:    res.data.reqs[0].clients[0]
+                //         },
+                //         desc:         desc
+                //       }
+                //     };
+                //     window.ppdf.signal.send(JSON.stringify(msg));
+                //     console.warn("发送本地描述");
+                //     console.warn(msg);
+                // }).catch(function(e){
+                //     console.error('p2p通讯故障');
+                //     console.error(e);
+                // });
                 break;
             //收到请求描述信息
             case 1003:
