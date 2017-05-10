@@ -1,6 +1,13 @@
 # P2P-Dispatch-Framework
 P2P分发框架
 
+# 测试
+1.  警告
+测试时需要修改ppdf/src/config.js中的信令服务器为本机ip地址
+
+2.  测试地址
+
+        http://localhost:10000
 
 # 信令服务器处理报文
 3001 操作索引
