@@ -41,6 +41,8 @@ jspm_packages
 /Resource/
 node_modules/
 npm-debug.log
+/dist
+dist
 *.jpg
 *.iml
 .idea/
