@@ -17,6 +17,8 @@ module.exports = function(grunt){
                     'src/index.js',
                     'src/config.js',
                     'src/libs/*.js',
+                    //dom控制模块
+                    'src/libs/Dom/*.js',
 
                     //p2p传输模块
                     'src/libs/P2P/P2P.js',
