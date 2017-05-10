@@ -37,10 +37,10 @@ jspm_packages
 .node_repl_history
 
 ＃自定义内容
-/node_modules/
-/Resource/ppdf/dist
-/Resource/ppdf/node_modules/
 node_modules/
+/node_modules/
+dist
+/dist
 npm-debug.log
 *.jpg
 *.iml
