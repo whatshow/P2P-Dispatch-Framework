@@ -18,6 +18,7 @@ P2P分发框架（前端框架）
 node.js: v0.10.*+
 
 3.2 游览器数据库
+
         IE: 10+ (IndexedDB)
         Firefox: 26+ (IndexedDB)
         Chrome: 31+ (IndexedDB, WebSQL)
@@ -28,6 +29,7 @@ node.js: v0.10.*+
 
 # 四、WebRTC说明
 4.1 API
+
         partial interface RTCDataChannel : EventTarget {
             Promise send (DOMString data);
             Promise send (Blob data);
