@@ -185,6 +185,42 @@ module.exports = {
         console.log("发送结果");
         console.log(response);
     },
+    /**
+     * 转发数据索取请求
+     * @ws                      websocket连接对象
+     * @address
+     */
+    transferDataQuery:  function(ws, address){
+      console.warn("转发数据索取请求");
+      var i;
+      var address2Send;
+      //找到发送方法
+      for(i = 0; i < global.clients.length; i++){
+        if(global.clients[i].match(ws)){
+          address2Send = global.clients[i].getAddress();
+          break;
+        }
+      }
+      //找到接受方
+      for(i = 0; i < global.clients.length; i++){
+        if(global.clients[i].match(address)){
+          //准备响应报文
+          var msg = {
+            code:               1201,
+            data:{
+              source:{
+                address:        address2Send
+              }
+            }
+          };
+          //发送数据
+          global.clients[i].obj.send(JSON.stringify(msg));
+          console.log(msg);
+          break;
+        }
+      }
+    },
+  
 
     /**
      * 转发请求desc
@@ -260,8 +296,44 @@ module.exports = {
     },
     /**
      * 转发候选信息
+     * @ws                目标
+     * @address
+     * @iceCandidate
      */
-
+    transferIceCandidate: function(ws, address, iceCandidate){
+      console.error("转发候选信息");
+      var i;
+      var address2Send;               //需要发送给对方的地址
+      //找到请求方的地址
+      for(i = 0; i < global.clients.length; i++){
+        if(global.clients[i].match(ws)){
+          address2Send = global.clients[i].getAddress();
+          break;
+        }
+      }
+      //找到对方
+      for(i = 0; i < global.clients.length; i++){
+        if(global.clients[i].match(address)){
+          //构造信息
+          var msg = {
+            code:         1005,
+            data:{
+              source:{
+                address:  address2Send
+              },
+              candidate:    iceCandidate
+            }
+          };
+          //发送
+          global.clients[i].obj.send(JSON.stringify(msg));
+          console.log("通知对方候选信息");
+          console.log(msg);
+          break;
+        }
+      }
+    },
+    
+    
 
     /**
      * 检查是否存在提供资源的人

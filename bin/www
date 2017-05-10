@@ -126,6 +126,7 @@ var ServerManager = {
       
       var address;
       var desc;
+      var candidate;
       //找到这个client
       try{
         var msg = JSON.parse(req);
@@ -161,6 +162,24 @@ var ServerManager = {
                   //调用方法
                   WSCtrl.manager.transferAnswerDesc(client, address, desc);
                 }catch (e){}
+                break;
+          //转发候选信息描述
+          case 3005:
+                address = msg.data.target.address;
+                candidate = msg.data.candidate;
+                console.log("转发候选信息描述");
+            
+                //调用方法
+                WSCtrl.manager.transferIceCandidate(client, address, candidate);
+                break;
+                
+          //转发数据索取请求
+          case 3201:
+                try{
+                  address = msg.data.target.address;
+                  //调用方法
+                  WSCtrl.manager.transferDataQuery(client, address);
+                }catch(e){}
                 break;
         }
       }catch(e){}
