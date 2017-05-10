@@ -38,8 +38,7 @@ jspm_packages
 
 ＃自定义内容
 /node_modules/
-/Resource/ppdf/dist
-/Resource/ppdf/node_modules/
+/Resource/
 node_modules/
 npm-debug.log
 *.jpg
