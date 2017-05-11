@@ -275,8 +275,8 @@
                     var blob = new Blob([event.data]);
                     var data = window.URL.createObjectURL(blob);
                     //找到source
-                    sources[0].obj.setAttribute('src', data);
-                  }
+                    //sources[0].obj.setAttribute('src', data);
+                  };
                 };
               
                 //保存描述

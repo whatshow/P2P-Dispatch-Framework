@@ -133,35 +133,53 @@ var ServerManager = {
         switch(msg.code){
           //操作索引
           case 3001:
-                //收集资源
-                WSCtrl.manager.gatherResources(client, msg.data);
-                break;
+            //收集资源
+            WSCtrl.manager.gatherResources(client, msg.data);
+            break;
           //寻找有这些资源的客户端
           case 3002:
-                //通知客户端，这些资源该怎么找
-                WSCtrl.manager.findClients2AcquireData(client, msg.data);
-                break;
+            //通知客户端，这些资源该怎么找
+            WSCtrl.manager.findClients2AcquireData(client, msg.data);
+            break;
           //转发提供描述
           case 3003:
-                try{
-                  //获取地址、描述信息
-                  address = msg.data.target.address;
-                  desc = msg.data.desc;
-                  //调用方法
-                  WSCtrl.manager.transferOfferDesc(client, address, desc);
-                }catch (e){
-                  //获取内容报错
-                }
-                break;
+            try{
+              //获取地址、描述信息
+              address = msg.data.target.address;
+              desc = msg.data.desc;
+              //调用方法
+              WSCtrl.manager.transferOfferDesc(client, address, desc);
+            }catch (e){
+              //获取内容报错
+            }
+            break;
           //转发响应描述
           case 3004:
-                try{
-                  address = msg.data.target.address;
-                  desc = msg.data.desc;
-                  //调用方法
-                  WSCtrl.manager.transferAnswerDesc(client, address, desc);
-                }catch (e){}
-                break;
+            try{
+              address = msg.data.target.address;
+              desc = msg.data.desc;
+              //调用方法
+              WSCtrl.manager.transferAnswerDesc(client, address, desc);
+            }catch (e){}
+            break;
+          //转发候选信息描述
+          case 3005:
+            address = msg.data.target.address;
+            candidate = msg.data.candidate;
+            console.log("转发候选信息描述");
+    
+            //调用方法
+            WSCtrl.manager.transferIceCandidate(client, address, candidate);
+            break;
+  
+          //转发数据索取请求
+          case 3201:
+            try{
+              address = msg.data.target.address;
+              //调用方法
+              WSCtrl.manager.transferDataQuery(client, address);
+            }catch(e){}
+            break;
         }
       }catch(e){}
     },
