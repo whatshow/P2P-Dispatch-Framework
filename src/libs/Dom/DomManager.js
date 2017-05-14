@@ -2,7 +2,7 @@
   /**
    * 元素
    * @obj         找到的dom目标
-   * @type        元素类型，img、object、audio、video、source
+   * @type        元素类型，img、object、param、audio、video、source
    */
   function Element(obj){
     this.obj = obj;
