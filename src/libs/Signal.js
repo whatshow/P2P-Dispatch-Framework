@@ -2,6 +2,7 @@
     if(window.ppdf){
         window.ppdf.signal = {
             client:                     null,                   //客户端
+            controllers:                [],                     //控制器（其实都是回调函数）
             /**
              * 建立通讯
              */
@@ -27,6 +28,58 @@
                     }
                 });
             },
+            /**
+             * 增加消息处理函数
+             * @callback                回调函数
+             */
+            addController:  function(callback){
+              //增加处理函数
+              window.ppdf.signal.controllers.push(callback);
+              //增加调用
+              if(window.ppdf.signal.client){
+                window.ppdf.signal.client.onmessage = function(e) {
+                  for(var i = 0; i < window.ppdf.signal.controllers.length; i++){
+                    window.ppdf.signal.controllers[i](e.data);
+                  }
+                }
+              }
+            },
+            /**
+             * 删除调用
+             * @index                   第index个函数，index从0开始计算
+             */
+            removeController: function(index){
+              if(index >= 0 && index < window.ppdf.signal.controllers.length){
+                //删除处理函数
+                window.ppdf.signal.controllers.splice(index, 1);
+                //重新添加绑定
+                if(window.ppdf.signal.client){
+                  window.ppdf.signal.client.onmessage = function(e) {
+                    for(var i = 0; i < window.ppdf.signal.controllers.length; i++){
+                      window.ppdf.signal.controllers[i](e.data);
+                    }
+                  }
+                }
+              }
+            },
+            /**
+             * 获取所有控制器
+             */
+            getAllControllers:  function(){
+              return window.ppdf.signal.controllers;
+            },
+            /**
+             * 删除所有控制器
+             */
+            removeAllControllers: function(){
+              window.ppdf.signal.controllers = [];
+              if(window.ppdf.signal.client){
+                window.ppdf.signal.client.onmessage = function(e) {
+                  //不做任何处理
+                }
+              }
+            },
+          
             /**
              * 接到消息该怎么处理
              * @callback(res)                  处理返回消息函数

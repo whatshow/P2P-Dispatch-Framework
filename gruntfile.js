@@ -23,6 +23,7 @@ module.exports = function(grunt){
                     //p2p传输模块
                     'src/libs/P2P/P2P.js',
                     "src/libs/P2P/PeerClient.js",
+                    'src/libs/P2P/Mission.js',
                     'src/libs/P2P/PeerClientPool.js',
                     //开始任务
                     'src/start.js'
