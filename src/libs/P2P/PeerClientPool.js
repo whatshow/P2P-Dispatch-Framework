@@ -43,6 +43,8 @@
             break;
           //接收到发送数据请求，准备发送数据
           case 1201:
+            
+            window.ppdf.p2p.PeerClientPool.transfer();
             break;
         }
       });
@@ -75,7 +77,7 @@
         }
       }
       //执行到此说明客户端构造成功
-      
+      window.ppdf.p2p.PeerClientPool.doMission(client, mission);
       return true;
     },
     
@@ -85,9 +87,16 @@
      * @mission               任务
      */
     doMission:  function(client, mission){
-    
+      client.bindMission(mission);
     },
     
+    /**
+     * 根据desc寻找PeerClient
+     * @desc                  描述信息
+     */
+    findPeerClientByDesc: function(desc){
+    
+    },
     
     /*** 被调用的方法 ***/
     /**
@@ -123,6 +132,14 @@
           return null;
         }
       }
+    },
+    /**
+     * 开启传输
+     */
+    transfer: function(){
+      return new Promise(function(){
+      
+      });
     }
   };
 })();
