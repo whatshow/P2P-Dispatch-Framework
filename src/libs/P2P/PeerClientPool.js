@@ -80,7 +80,6 @@
       window.ppdf.p2p.PeerClientPool.doMission(client, mission);
       return true;
     },
-    
     /**
      * 执行任务（尝试建立连接，连接建立成功，则开始执行传输）
      * @client                客户端
@@ -89,13 +88,18 @@
     doMission:  function(client, mission){
       client.bindMission(mission);
     },
-    
     /**
      * 根据desc寻找PeerClient
      * @desc                  描述信息
      */
     findPeerClientByDesc: function(desc){
-    
+      for(var i = 0; i < pool.length; i++){
+        if(pool[i].hasLocalDesc(desc)){
+          return pool[i];
+        }else if(i == pool.length - 1){
+          return null;
+        }
+      }
     },
     
     /*** 被调用的方法 ***/
