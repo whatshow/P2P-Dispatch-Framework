@@ -22,18 +22,18 @@ p2p客户端对象，提供给PeerClientPool.js操作
 ### 模块解读
 * 构造方法
 
-window.ppdf.p2p.PeerClient();
+    window.ppdf.p2p.PeerClient();
 
 * 设置释放客户端（不传递参数时，默认3000毫秒释放）
     * 参数
         * timeout：对应毫秒后释放this.obj
     * 调用：
 
-    peerClient.setRelease(timeout);
+        peerClient.setRelease(timeout);
 
 * 中断释放客户端
 
-peerClient.cutRelease();
+    peerClient.cutRelease();
 
 * 是否为空（obj对象是否为null）
 
