@@ -37,11 +37,17 @@ p2p客户端对象，提供给PeerClientPool.js操作
 
 * 是否为空（obj对象是否为null）
 
-
+    peerClient.isEmpty();
 
 * 重新构造客户端
 
+    peerClient.rebuild();
+
 * 本地描述信息是否匹配
+    * 参数
+        * desc 描述对象
+    * 调用
+        peerClient.hasLocalDesc(desc);
 
 * 绑定任务
 
