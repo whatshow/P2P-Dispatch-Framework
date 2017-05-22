@@ -16,6 +16,6 @@
   /**
    * 开始任务
    */
-  window.ppdf.p2p.Mission.prototype.do = function(){
-  };
+  // window.ppdf.p2p.Mission.prototype.do = function(){
+  // };
 })();
