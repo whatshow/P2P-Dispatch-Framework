@@ -1,7 +1,11 @@
-//客户端
-window.ppdf.p2p.PeerClient = function(){
+/**
+ * 客户端
+ * @live 生存时间，默认3000ms
+ */
+window.ppdf.p2p.PeerClient = function(live){
     var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
     this.obj = new RTCPeerConnection(window.ppdf.config.p2p);     //p2p对象
+    this.live = live ? live:3000;                                 //生存时间
     this.release = null;                                          //释放函数默认为空
     this.mission = null;                                          //任务
     this.targetAddress = null;                                    //对方
@@ -13,9 +17,11 @@ window.ppdf.p2p.PeerClient = function(){
 window.ppdf.p2p.PeerClient.prototype.setRelease = function(timeout){
   var peerclient = this;
   
-  //默认3000毫秒释放
+  //不设置则重新根据生存时间设置；设置了则重设live属性
   if(!timeout){
-    timeout = 3000;
+    timeout = this.live;
+  } else{
+    this.live = timeout;
   }
   //取消之前的释放函数
   if(this.release){
@@ -163,7 +169,7 @@ window.ppdf.p2p.PeerClient.prototype.storeAnswerDesc = function(desc){
 };
 /**
  * 注入候选信息时回调
- * @callback(peerclient)     回调
+ * @callback(icecandidate)     回调
  */
 window.ppdf.p2p.PeerClient.prototype.setOnIceCandidate = function(callback){
   this.obj.onicecandidate = function(e) {

@@ -21,10 +21,13 @@ p2p客户端对象，提供给PeerClientPool.js操作
 
 ### 模块解读
 * 构造方法
+    * 参数
+        * live 生存时间，默认3000ms
+    * 调用
 
-    window.ppdf.p2p.PeerClient();
+        window.ppdf.p2p.PeerClient();
 
-* 设置释放客户端（不传递参数时，默认3000毫秒释放）
+* 设置释放客户端（不传递参数时，根据自身的live属性设置）
     * 参数
         * timeout：对应毫秒后释放this.obj
     * 调用：
@@ -47,21 +50,65 @@ p2p客户端对象，提供给PeerClientPool.js操作
     * 参数
         * desc 描述对象
     * 调用
+
         peerClient.hasLocalDesc(desc);
 
 * 绑定任务
+    * 参数
+        * mission 任务对象
+    * 调用
+
+        peerClient.bindMission(mission);
 
 * 目标地址是否匹配
+    * 参数
+        * targetAddress 目标IP地址（支持IPv4 & IPv6）
+    * 调用
+
+        peerClient.hasTargetAddress(targetAddress);
 
 * 绑定目标
+    * 参数
+        * targetAddress 目标IP地址（支持IPv4 & IPv6）
+    * 调用
+
+        peerClient.bindTarget(targetAddress)
 
 * 准备描述对象
+    * 调用
+
+            peerClient.createOffer().then(function(desc){
+                //获取了描述信息
+                desc;
+            }).catch(function(error){
+                //错误
+            });
 
 * 响应描述
+    * 参数
+        * desc
+    * 调用
+
+            peerClient.answerDesc(desc).then(function(desc){
+                //获取了描述信息
+                desc;
+            }).catch(function(error){
+                //错误
+            });
 
 * 保存响应描述
+    * 参数
+        * desc 描述信息
+    * 调用
+
+        peerClient.storeAnswerDesc(desc);
 
 * 注入候选信息时回调
+    * 参数
+        * callback(candidate)       处理候选信息的回调
+    * 调用
+
+        peerClient.setOnIceCandidate(callback);
 
 ## 四、Mission.js
 ### 介绍
