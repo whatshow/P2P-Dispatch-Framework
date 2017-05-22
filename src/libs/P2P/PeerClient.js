@@ -162,10 +162,10 @@ window.ppdf.p2p.PeerClient.prototype.storeAnswerDesc = function(desc){
   this.obj.setRemoteDescription(desc);
 };
 /**
- * 收到候选信息时
+ * 注入候选信息时回调
  * @callback(peerclient)     回调
  */
-window.ppdf.p2p.PeerClient.prototype.onicecandidate = function(callback){
+window.ppdf.p2p.PeerClient.prototype.setOnIceCandidate = function(callback){
   this.obj.onicecandidate = function(e) {
     if(e.candidate){
       callback(this, e.candidate);
