@@ -22,24 +22,22 @@ p2p客户端对象，提供给PeerClientPool.js操作
 ### 模块解读
 * 构造方法
 
-        window.ppdf.p2p.PeerClient = function(){
-            var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-            this.obj = new RTCPeerConnection(window.ppdf.config.p2p);     //p2p对象
-            this.release = null;                                          //释放函数默认为空
-            this.mission = null;                                          //任务
-            this.targetAddress = null;                                    //对方
-        };
+window.ppdf.p2p.PeerClient();
 
 * 设置释放客户端（不传递参数时，默认3000毫秒释放）
     * 参数
         * timeout：对应毫秒后释放this.obj
-    * 调用：window.ppdf.p2p.PeerClient.prototype.setRelease(timeout);
+    * 调用：
+
+    peerClient.setRelease(timeout);
 
 * 中断释放客户端
 
-    window.ppdf.PeerClient.prototype.cutRelease();
+peerClient.cutRelease();
 
 * 是否为空（obj对象是否为null）
+
+
 
 * 重新构造客户端
 
