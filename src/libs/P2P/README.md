@@ -25,7 +25,7 @@ p2p客户端对象，提供给PeerClientPool.js操作
         * live 生存时间，默认3000ms
     * 调用
 
-        window.ppdf.p2p.PeerClient();
+        window.ppdf.p2p.PeerClient(live);
 
 * 设置释放客户端（不传递参数时，根据自身的live属性设置）
     * 参数

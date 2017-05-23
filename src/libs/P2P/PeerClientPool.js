@@ -43,8 +43,7 @@
             break;
           //接收到发送数据请求，准备发送数据
           case 1201:
-            
-            window.ppdf.p2p.PeerClientPool.transfer();
+            window.ppdf.p2p.PeerClientPool.transfer(res.data);
             break;
         }
       });
@@ -139,9 +138,10 @@
     },
     /**
      * 开启传输
+     * @data            websocket中的data字段
      */
-    transfer: function(){
-      return new Promise(function(){
+    transfer: function(data){
+      return new Promise(function(resolve, reject){
       
       });
     }

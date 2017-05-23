@@ -6,7 +6,7 @@ window.ppdf.p2p.PeerClient = function(live){
     var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
     this.obj = new RTCPeerConnection(window.ppdf.config.p2p);     //p2p对象
     this.live = live ? live:3000;                                 //生存时间
-    this.release = null;                                          //释放函数默认为空
+    this.setRelease(live);                                        //一旦创建就会发生释放
     this.mission = null;                                          //任务
     this.targetAddress = null;                                    //对方
 };

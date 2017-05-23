@@ -16,6 +16,8 @@ module.exports = function(grunt){
                 src:        [
                     'src/index.js',
                     'src/config.js',
+                    //错误对象
+                    'src/libs/Error/Error.js',
                     'src/libs/*.js',
                     //dom控制模块
                     'src/libs/Dom/*.js',
