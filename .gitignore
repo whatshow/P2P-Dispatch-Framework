@@ -43,6 +43,9 @@ dist
 /dist
 npm-debug.log
 *.jpg
+*.jpeg
+*.png
+*.bmp
 *.iml
 .idea/
 .ipr
