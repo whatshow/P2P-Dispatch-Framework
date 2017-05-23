@@ -15,6 +15,8 @@ p2p线程池模块－提供P2P线程池，用于执行任务
 
 * 增加任务
 
+![image](https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1495538848643&di=f8edcda52f6c127a1cf3e9ac1c7c5028&imgtype=0&src=http%3A%2F%2Fwww.myexception.cn%2Fimg%2F2013%2F03%2F26%2F094845873.png)
+
 ## 三、PeerClient.js
 ### 介绍
 p2p客户端对象，提供给PeerClientPool.js操作，在构造PeerClient中标识本机的客户端采用创建时间的方法，因此创建过程中必须放到主线程，即采用webworker优化时只能采用传值的方式
