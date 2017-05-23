@@ -2,10 +2,8 @@
  * PeerClientPool
  * 使用注意
  */
-
 (function() {
   var NO_LIMIT_MISSIONQUEUE = -1;                 //不限制任务队列长度
-  
   
   //配置
   var setting = {
@@ -19,7 +17,7 @@
   
   //任务队列
   var missionQueue = [];
-  //P2P客户端池（形如 [{peerclient, release },  ...] ）一个客户端，一个释放函数
+  //P2P客户端池，形如 [peerclient,  ...]
   var pool = [];
   
   
@@ -43,7 +41,13 @@
             break;
           //接收到发送数据请求，准备发送数据
           case 1201:
-            window.ppdf.p2p.PeerClientPool.transfer(res.data);
+            window.ppdf.p2p.PeerClientPool.transfer(res.data).catch(function(e){
+              console.log(e);
+            });
+            break;
+          //接收到拒绝服务，准备使用下一个提供者
+          case 1202:
+            window.ppdf.p2p.PeerClientPool.tryNextProvider(res.data);
             break;
         }
       });
@@ -75,7 +79,7 @@
           return true;
         }
       }
-      //执行到此说明客户端构造成功
+      //执行到此说明客户端构造成功，则把任务绑定到客户端中
       window.ppdf.p2p.PeerClientPool.doMission(client, mission);
       return true;
     },
@@ -125,10 +129,8 @@
     findUsefulClient: function(){
       for(var i = 0; i < pool.length; i ++){
         if(pool[i].isEmpty()){
-          //找到了
+          //找到了空闲的客户度，则重新激活，并返回这个客户端给
           pool[i].rebuild();
-          //经过一定时间释放客户端
-          pool[i].setRelease(setting.peerClientLive);
           return pool[i];
         }else if(i == pool.length - 1){
           //什么都没有找到，返回null
@@ -137,13 +139,72 @@
       }
     },
     /**
+     * 执行下一个任务
+     */
+    
+    
+    
+    /*** 接收到消息的回调 ***/
+    /**
      * 开启传输
-     * @data            websocket中的data字段
+     * @data            websocket返回对象中的data字段
      */
     transfer: function(data){
       return new Promise(function(resolve, reject){
-      
+        //先寻找空闲客户端
+        var client = window.ppdf.p2p.PeerClientPool.findUsefulClient();
+        //如果没有空闲的，则尝试构造
+        if(!client){
+          client = window.ppdf.p2p.PeerClientPool.addClient();
+        }
+        //如果构造失败，则说明任务并发达到最高，则拒绝本次传输
+        if(!client){
+          //通知失败
+          data.offer.isAvailable = false;
+          window.ppdf.signal.send(JSON.stringify({
+            code:             3202,
+            data:             data
+          }));
+          reject(window.ppdf.Error(40022, "拒绝提供数据传输服务（本地线程并发达到最高，再并发影响效率）", null));
+          return;
+        }
+        
+        //执行到此说明，可用获取到一个可用的客户端
+        //构造提供描述
+        client.createOffer().then(function(desc){
+          //配置描述 & 时间戳
+          data.offer.desc = desc;
+          data.offer.timestamp = client.getTimestamp();
+          //发送提供描述
+          window.ppdf.signal.send(JSON.stringify({
+            code:             3202,
+            data:             data
+          }));
+        }).catch(function(e){
+          //构造描述对象失败
+          reject(window.ppdf.Error(40023, "构造提供描述失败", e))
+        });
       });
+    },
+    /**
+     * 尝试下一个提供者
+     * @data                websocket返回对象中的data字段
+     */
+    tryNextProvider:  function(data){
+      var i;
+      //找到这个客户端
+      var timestamp = data.answer.timestamp;
+      var client;
+      for(i = 0; i < pool.length; i++){
+        if(pool[i].hasTimestamp(timestamp)){
+          client = pool[i];
+        }
+      }
+      
+      //如果找到了，则执行
+      if(!client){
+      
+      }
     }
   };
 })();

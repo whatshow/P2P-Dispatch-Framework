@@ -15,9 +15,12 @@ p2p线程池模块－提供P2P线程池，用于执行任务
 
 * 增加任务
 
+
+ ![image](https://github.com/ButBueatiful/dotvim/raw/master/screenshots/vim-screenshot.jpg)
+
 ## 三、PeerClient.js
 ### 介绍
-p2p客户端对象，提供给PeerClientPool.js操作
+p2p客户端对象，提供给PeerClientPool.js操作，在构造PeerClient中标识本机的客户端采用创建时间的方法，因此创建过程中必须放到主线程，即采用webworker优化时只能采用传值的方式
 
 ### 模块解读
 * 构造方法

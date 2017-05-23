@@ -6,9 +6,11 @@ window.ppdf.p2p.PeerClient = function(live){
     var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
     this.obj = new RTCPeerConnection(window.ppdf.config.p2p);     //p2p对象
     this.live = live ? live:3000;                                 //生存时间
-    this.setRelease(live);                                        //一旦创建就会发生释放
+    this.setRelease();                                            //一旦创建就会发生释放
     this.mission = null;                                          //任务
-    this.targetAddress = null;                                    //对方
+    this.targetAddress = null;                                    //对方地址
+  
+    this.timestamp = new Date().valueOf();                        //时间戳，用来唯一标识一个客户端
 };
 /**
  * 设置释放客户端
@@ -40,6 +42,8 @@ window.ppdf.p2p.PeerClient.prototype.setRelease = function(timeout){
     }
     //释放目标地址
     peerclient.targetAddress = null;
+    //释放时间戳
+    peerclient.timestamp = null;
   }, timeout);
 };
 /**
@@ -70,6 +74,10 @@ window.ppdf.PeerClient.prototype.isEmpty = function(){
 window.ppdf.PeerClient.prototype.rebuild = function(){
   var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
   this.obj = new RTCPeerConnection(window.ppdf.config.p2p);     //p2p对象
+  //重新设置过期时间
+  this.setRelease();
+  //重新设置时间戳
+  this.timestamp = new Date().valueOf();                        //时间戳，用来唯一标识一个客户端
 };
 
 
@@ -93,6 +101,20 @@ window.ppdf.p2p.PeerClient.prototype.hasLocalDesc = function(desc){
 window.ppdf.p2p.PeerClient.prototype.bindMission = function(mission){
   this.mission = mission;
 };
+/**
+ * 获取时间戳
+ */
+window.ppdf.p2p.PeerClient.prototype.getTimestamp = function(){
+  return this.timestamp;
+};
+/**
+ * 时间戳是否一致
+ * @timestamp
+ */
+window.ppdf.p2p.PeerClient.prototype.hasTimestamp = function(timestamp){
+  return timestamp == this.timestamp ? true : false;
+};
+
 /**
  * 目标地址是否匹配
  * @targetAddress   目标地址

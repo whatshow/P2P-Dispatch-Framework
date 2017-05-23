@@ -14,7 +14,7 @@
             check:   function(){
                 return new Promise(function(resolve, reject){
                     if(!window.RTCPeerConnection && !window.webkitRTCPeerConnection && !window.mozRTCPeerConnection){
-                        reject(new window.ppdf.Utils.Error(40021, "不支持P2P", null));
+                        reject(new window.ppdf.Error(40021, "不支持P2P", null));
                     }else{
                         //var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
                         //ppdf.p2p.client = new RTCPeerConnection(window.ppdf.config.p2p);
