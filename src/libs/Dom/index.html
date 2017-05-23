@@ -1,0 +1,21 @@
+<html>
+<head>
+    <title>
+        PPDF 测试
+    </title>
+    <meta charset="UTF-8">
+</head>
+<body>
+<img width="100px" ppdf-src="./img.png" alt="SRC 为空" />
+<video controls width="100px" ppdf-src="video.mp4" poster="img.png">
+    你的浏览器不支持 <code>video</code>
+</video>
+<audio controls width="100px">
+    你的浏览器不支持 <code>audio</code>
+    <source src="audio.mp3" type="audio/mp3">
+</audio>
+<button id="set">设置BLOB</button>
+<button id="reset">加载默认资源</button>
+<script src="DomManager.js"></script>
+</body>
+</html>
