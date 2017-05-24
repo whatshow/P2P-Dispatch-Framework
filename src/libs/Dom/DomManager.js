@@ -37,10 +37,15 @@
 (function () {
   var DOMManager = window.DOMManager = {};
   var urlCreator = window.URL || window.webkitURL;
+  // 需要收集的节点类型
   var resourceTypes = ['img', 'audio', 'video', 'source', 'track', 'poster'];
+  // 默认收集的节点属性
   var defaultProp = 'ppdf-src';
+  // 收集到的资源：[{url:url,absoluteUrl:absoluteUrl}]
   var resources = [];
+  // 收集到的节点
   var nodes = [];
+  // 节点上待收集的资源属性
   var resourceMap = {
     'img': [{definedProp: 'ppdf-src', prop: 'src'}],
     'video': [{definedProp: 'ppdf-src', prop: 'src'}, {definedProp: 'ppdf-poster', prop: 'poster'}],
@@ -53,14 +58,14 @@
   var SOURCE = 'SOURCE';
   var TRACK = 'TRACK';
   var generateAbsoluteUrl = getAbsoluteUrl();
-  /**
-   * 收集资源
-   * @returns [{url:url,absoluteUrl:absoluteUrl}]
-   */
   //TODO: url格式化，规范，如何比较？
   //TODO: audio vedio 资源加载研究
   //TODO: 视频音频浏览器支持情况检测
   //TODO: 内存释放研究
+  /**
+   * 收集资源
+   * @returns [{url:url,absoluteUrl:absoluteUrl}]
+   */
   DOMManager.collectPageResource = function (callback) {
     var rawData = resourceTypes
       .map(function (type) {
@@ -84,6 +89,10 @@
     return resources;
   }
 
+  /**
+   * 恢复默认资源（分发资源加载失败的情况下调用）
+   * @param url
+   */
   DOMManager.onResourceLoadFailed = function (url) {
     nodes.forEach(function (item) {
       var node = item.node;
@@ -97,6 +106,11 @@
     })
   }
 
+  /**
+   * 替换节点资源为分发资源
+   * @param url
+   * @param blob
+   */
   DOMManager.replacePageResource = function (url, blob) {
     var objectURL = urlCreator.createObjectURL(blob);
     nodes.forEach(function (item) {
@@ -105,6 +119,11 @@
     })
   }
 
+  /**
+   * 格式化收集到的资源
+   * @param rawData
+   * @returns {Array.<*>}
+   */
   function generateFormattedResource(rawData) {
     return rawData
       .map(function (data) {
@@ -123,12 +142,22 @@
       })
   }
 
+  /**
+   * 提取 DOM 节点
+   * @param rawData
+   * @returns {Array}
+   */
   function generateFormattedNodes(rawData) {
     return rawData.map(function (data) {
       return {type: data.type, node: data.node};
     })
   }
 
+  /**
+   * 收集DOM节点的资源
+   * @param type
+   * @returns {Array}
+   */
   function collectNodeResource(type) {
     return getNodes(type)
       .map(function (node) {
@@ -136,6 +165,13 @@
       });
   }
 
+  /**
+   * 设置 DOM 节点的资源为分发资源
+   * @param node
+   * @param type
+   * @param url
+   * @param objectURL
+   */
   function setNodeResource(node, type, url, objectURL) {
     var props = Array.isArray(resourceMap[type]) ? resourceMap[type] : [resourceMap[type]];
     props.forEach(function (prop) {
@@ -152,14 +188,24 @@
         }
       }
     })
-
   }
 
+  /**
+   * 恢复 DOM 节点资源为默认资源
+   * @param node
+   * @param prop
+   * @param url
+   */
   function resetNodeResource(node, prop, url) {
     console.log('恢复节点资源：', prop, '=>', url);
     isDOMNode(node) && node.setAttribute(prop, url);
   }
 
+  /**
+   * 收集资源节点
+   * @param type
+   * @returns {Array.<T>|*}
+   */
   function getNodes(type) {
     return Array.prototype.slice.call(document.getElementsByTagName(type))
       .filter(function (node) {
@@ -175,6 +221,12 @@
       });
   }
 
+  /**
+   * 收集 DOM 节点的资源
+   * @param node
+   * @param type
+   * @returns {{node: *, urls: Array, type: *}}
+   */
   function getURL(node, type) {
     var props = Array.isArray(resourceMap[type]) ? resourceMap[type] : [resourceMap[type]];
     if (!isDOMNode(node)) {
@@ -190,14 +242,29 @@
     return {node: node, urls: urls, type: type};
   }
 
+  /**
+   * 比较 URL
+   * @param a
+   * @param b
+   * @returns {boolean}
+   */
   function compareURL(a, b) {
     return generateAbsoluteUrl(a).toLowerCase() === generateAbsoluteUrl(b).toLowerCase();
   }
 
+  /**
+   * 判断一个对象是否为 DOM 节点（不严谨）
+   * @param node
+   * @returns {boolean}
+   */
   function isDOMNode(node) {
     return !!node.nodeName;
   }
 
+  /**
+   * 根据已有 URL 生成一个绝对路径的 URL
+   * @returns {Function}
+   */
   function getAbsoluteUrl() {
     var a;
     return function (url) {
@@ -207,30 +274,32 @@
     };
   };
 
-  function observeDOM(obj, callback) {
+  /**
+   * 检测 DOM 变化
+   * @param node
+   * @param callback
+   */
+  function observeDOM(node, callback) {
     var MutationObserver = window.MutationObserver || window.WebKitMutationObserver,
       eventListenerSupported = window.addEventListener;
     if (MutationObserver) {
-      // define a new observer
-      var obs = new MutationObserver(function (mutations, observer) {
+      var obs = new MutationObserver(function (mutations) {
         if (mutations[0].addedNodes.length || mutations[0].removedNodes.length)
           callback();
       });
-      // have the observer observe foo for changes in children
-      obs.observe(obj, {childList: true, subtree: true});
+      obs.observe(DOM, {childList: true, subtree: true});
     } else if (eventListenerSupported) {
-      obj.addEventListener('DOMNodeInserted', callback, false);
-      obj.addEventListener('DOMNodeRemoved', callback, false);
+      node.addEventListener('DOMNodeInserted', callback, false);
+      node.addEventListener('DOMNodeRemoved', callback, false);
     }
   };
 
-  // Observe a specific DOM element:
   observeDOM(document.getElementsByTagName('html')[0], function () {
     DOMManager.collectPageResource();
   });
 
   /**
-   * Demo
+   * Presentation
    * @type {Element}
    */
   var setButton = document.getElementById('set');
@@ -259,6 +328,10 @@
     this.parentElement.removeChild(this);
   }
 
+  /**
+   * 构造 Blob 对象，演示使用
+   * @param url
+   */
   function loadBlobResource(url) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
