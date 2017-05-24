@@ -52,6 +52,9 @@
           case 1202:
             window.ppdf.p2p.PeerClientPool.tryNextProvider(res.data);
             break;
+          //接收到终止请求，释放用于发送数据的客户端
+          case 1203:
+            break;
         }
       });
       //初始化
@@ -83,17 +86,20 @@
         }
       }
       //执行到此说明客户端构造成功，则把任务绑定到客户端中
+      client.setOnIceCandidate(function(candidate){
+        //在
+      });
       window.ppdf.p2p.PeerClientPool.doMission(client, mission);
       return true;
     },
+    
+    /*** 被调用的方法 ***/
     /**
      * 执行任务（尝试建立连接，连接建立成功，则开始执行传输）
      * @client                客户端
      * @mission               任务（不传递表示再次执行任务）
      */
     doMission:  function(client, mission){
-      //中断释放过程
-      client.cutRelease();
       //检查传递的参数
       if(!mission){
         //如果没有设置任务，则采用client自己的任务
@@ -106,21 +112,30 @@
       if(!mission){
         return;
       }
-      
+    
       //执行到此说明一切准备就绪，开始发送数据索取请求
-      window.ppdf.signal.send(JSON.stringify({
-        code:   3201,
-        data:   {
-          offer:  {
-            //IP地址
-            address:    mission.getNextProviderAddress()
-          },
-          answer: {
-            //时间戳
-            timestamp:  client.getTimestamp()
+      //中断释放过程：如果中断失败，则说明客户端已经释放过了，已经触发了任务失败
+      if(client.cutRelease()){
+        //执行到此说明中断成功，则返回结果
+        var address = mission.getNextProviderAddress();
+        window.ppdf.signal.send(JSON.stringify({
+          code:   3201,
+          data:   {
+            offer:  {
+              //IP地址
+              address:    address
+            },
+            answer: {
+              //时间戳
+              timestamp:  client.getTimestamp()
+            }
           }
-        }
-      }));
+        }));
+        //绑定地址
+        client.bindTargetAddress(address);
+        //开始客户端对象释放计算时间
+        client.setRelease();
+      }
     },
     /**
      * 根据desc寻找PeerClient
@@ -135,8 +150,6 @@
         }
       }
     },
-    
-    /*** 被调用的方法 ***/
     /**
      * 新增一个客户度
      */
@@ -172,7 +185,7 @@
     
     /*** 接收到消息的回调 ***/
     /**
-     * 开启传输
+     * 开启传输（客户端是新建出来，不用中止释放）
      * @data            websocket返回对象中的data字段
      */
     transfer: function(data){
@@ -196,6 +209,8 @@
         }
         
         //执行到此说明，可用获取到一个可用的客户端
+        //绑定对方地址
+        client.bindTargetAddress(data.answer.address);
         //构造提供描述
         client.createOffer().then(function(desc){
           //配置描述 & 时间戳
@@ -209,7 +224,7 @@
         }).catch(function(e){
           //构造描述对象失败
           reject(window.ppdf.Error(40023, "构造提供描述失败", e));
-          //通知失败
+          //通知拒绝服务
           data.offer.isAvailable = false;
           window.ppdf.signal.send(JSON.stringify({
             code:             3202,
@@ -219,7 +234,7 @@
       });
     },
     /**
-     * 尝试下一个提供者
+     * 尝试下一个提供者（执行速度快，不用释放）
      * @data                websocket返回对象中的data字段
      */
     tryNextProvider:  function(data){
@@ -230,6 +245,7 @@
       for(i = 0; i < pool.length; i++){
         if(pool[i].hasTimestamp(timestamp)){
           client = pool[i];
+          break;
         }
       }
       
@@ -259,22 +275,85 @@
       window.ppdf.p2p.PeerClientPool.doMission(client);
     },
     /**
+     * 收到终止数据请求
+     * @data          websocket返回对象中的data字段
+     */
+    onTerminatingDateRequest: function(data){
+      var i;
+      //找到匹配offer的client
+      var client;
+      for(i = 0; i < pool.length; i++){
+        if(pool[i].hasTimestamp(data.offer.timestamp)){
+          client = pool[i];
+          break;
+        }
+      }
+      //如果没有找到，说明客户端已经被释放掉了,直接结束
+      if(!client){
+        return;
+      }
+      
+      //执行到此说明找到了，则立刻释放本地客户端
+      client.releaseImmediately();
+    },
+    /**
      * 收到提供描述
      * @data          websocket返回对象中的data字段
      */
-    onOfferDesc:  function(){
-    
+    onOfferDesc:  function(data){
+      var i;
+      
+      //寻找到本地的客户端
+      var client;
+      for(i = 0; i < pool.length; i++){
+        if(pool[i].hasTimestamp(data.answer.timestamp)){
+          client = pool[i];
+          break;
+        }
+      }
+      //如果没有找到客户端，说明这个连接已经被释放了，不再处理
+      if(!client){
+        return;
+      }
+      
+      //执行到此说明一切正常，则开始响应
+      //中断释放过程：如果中断失败，则说明客户端已经释放过了，已经触发了任务失败
+      if(client.cutRelease()){
+        client.answerDesc(data.offer.desc).then(function(){
+          //响应描述成功
+          data.answer.desc = desc;
+          window.ppdf.signal.send(JSON.stringify({
+            code:       3004,
+            data:       data
+          }));
+          client.setRelease();                                  //重新开始等待释放
+        }).catch(function(e){
+          //创建描述失败
+          //发出终止数据请求
+          data.answer.isAvailable = false;
+          window.ppdf.signal.send(JSON.stringify({
+            code:       3203,
+            data:       data
+          }));
+          //尝试下一个数据提供者
+          window.ppdf.p2p.PeerClientPool.doMission(client);
+          client.setRelease();                                  //重新开始等待释放
+        });
+      }
     },
     /**
      * 收到响应描述
      * @data          websocket返回对象中的data字段
      */
-    onAnswerDesc: function(){
+    onAnswerDesc: function(data){
     
     },
     /**
      * 收到候选信息
      * @data          websocket
      */
+    onCandidate:  function(data){
+    
+    }
   };
 })();

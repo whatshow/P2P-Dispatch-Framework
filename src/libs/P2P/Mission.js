@@ -1,6 +1,7 @@
 (function(){
   /**
-   * 构造一个新任务
+   * 任务－数据结构，用于描述获取一个资源的所有必备信息
+   *
    * @url                 资源(唯一标示一个资源，)
    * @md5                 资源md5值
    * @targetAddressList   数据源数组
@@ -12,8 +13,16 @@
     this.md5 = md5;
     this.targetAddressList = targetAddressList;
     this.curTargetAddressIndex = -1;                   //当前采用的数据提供者
-    this.succeed = succeed;
-    this.fail = fail;
+    this.succeed = function(){
+      succeed();
+      //清除所有信息，防止多次执行
+      this.clear();
+    };
+    this.fail = function(){
+      fail();
+      //清除所有信息，防止多次执行
+      this.clear();
+    }
   };
   
   /**
@@ -32,4 +41,16 @@
       return null;
     }
   };
+  
+  /**
+   * 释放所有信息
+   */
+  window.ppdf.p2p.Mission.prototype.clear = function(){
+    this.url = null;
+    this.md5 = null;
+    this.targetAddressList = null;
+    this.curTargetAddressIndex = -1;
+    this.succeed = null;
+    this.fail = null;
+  }
 })();
