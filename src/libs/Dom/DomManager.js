@@ -36,6 +36,7 @@
 
 (function () {
   var DOMManager = window.DOMManager = {};
+  var urlCreator = window.URL || window.webkitURL;
   var resourceTypes = ['img', 'audio', 'video', 'source', 'track', 'poster'];
   var defaultProp = 'ppdf-src';
   var resources = [];
@@ -51,9 +52,10 @@
   var VIDEO = 'VIDEO';
   var SOURCE = 'SOURCE';
   var TRACK = 'TRACK';
+  var generateAbsoluteUrl = getAbsoluteUrl();
   /**
    * 收集资源
-   * @returns [{url:url}]
+   * @returns [{url:url,absoluteUrl:absoluteUrl}]
    */
   //TODO: url格式化，规范，如何比较？
   //TODO: audio vedio 资源加载研究
@@ -71,27 +73,14 @@
         return item.urls.length !== 0;
       });
 
-    resources = rawData
-      .map(function (data) {
-        return data.urls;
-      })
-      .reduce(function (a, b) {
-        return a.concat(b);
-      }, [])
-      .map(function (url) {
-        return {url: url};
-      }).filter(function (data, index, self) {
-        return self.findIndex(function (item) {
-            return item.url === data.url;
-          }) === index;
-      })
+    resources = generateFormattedResource(rawData);
+    nodes = generateFormattedNodes(rawData);
 
-    nodes = rawData.map(function (data) {
-      return {type: data.type, node: data.node};
-    })
     console.log('收集的资源：', resources);
     console.log('收集的节点：', nodes);
+
     typeof callback === 'function' && callback(resources);
+
     return resources;
   }
 
@@ -101,7 +90,7 @@
       var type = item.type;
       var props = Array.isArray(resourceMap[type]) ? resourceMap[type] : [resourceMap[type]];
       props.forEach(function (prop) {
-        if (node.getAttribute(prop['definedProp']) === url) {
+        if (compareURL(node.getAttribute(prop['definedProp']), url)) {
           resetNodeResource(node, prop['prop'], node.getAttribute(prop['definedProp']));
         }
       })
@@ -109,10 +98,34 @@
   }
 
   DOMManager.replacePageResource = function (url, blob) {
-    var objectURL = window.URL && window.URL.createObjectURL(blob);
+    var objectURL = urlCreator.createObjectURL(blob);
     nodes.forEach(function (item) {
       console.log('添加节点资源：', url, '=>', objectURL);
       setNodeResource(item.node, item.type, url, objectURL);
+    })
+  }
+
+  function generateFormattedResource(rawData) {
+    return rawData
+      .map(function (data) {
+        return data.urls;
+      })
+      .reduce(function (a, b) {
+        return a.concat(b);
+      }, [])
+      .map(function (url) {
+        return {url: url, absoluteUrl: generateAbsoluteUrl(url)};
+      }).filter(function (data, index, self) {
+        // findIndex: IE not support, Chrome 45, Firefox 25, Safari 7.1
+        return self.findIndex(function (item) {
+            return compareURL(item.url, data.url);
+          }) === index;
+      })
+  }
+
+  function generateFormattedNodes(rawData) {
+    return rawData.map(function (data) {
+      return {type: data.type, node: data.node};
     })
   }
 
@@ -126,7 +139,7 @@
   function setNodeResource(node, type, url, objectURL) {
     var props = Array.isArray(resourceMap[type]) ? resourceMap[type] : [resourceMap[type]];
     props.forEach(function (prop) {
-      if (isDOMNode(node) && node.hasAttribute(prop['definedProp']) && node.getAttribute(prop['definedProp']) === url) {
+      if (isDOMNode(node) && node.hasAttribute(prop['definedProp']) && compareURL(node.getAttribute(prop['definedProp']), url)) {
         node.setAttribute(prop['prop'], objectURL);
         if (type === AUDIO || type === VIDEO) {
           node.load();
@@ -135,7 +148,7 @@
           node.parentNode && node.parentNode.load();
         }
         node.onload = function () {
-          window.URL && window.URL.revokeObjectURL(objectURL);
+          urlCreator.revokeObjectURL(objectURL);
         }
       }
     })
@@ -177,19 +190,22 @@
     return {node: node, urls: urls, type: type};
   }
 
-  function checkNodeIsInList(node) {
-    return nodes.some(function (item) {
-      return isDOMNode(node) && node.isEqualNode(item.node)
-    });
-  }
-
-  function compareURL(url1, url2) {
-
+  function compareURL(a, b) {
+    return generateAbsoluteUrl(a).toLowerCase() === generateAbsoluteUrl(b).toLowerCase();
   }
 
   function isDOMNode(node) {
     return !!node.nodeName;
   }
+
+  function getAbsoluteUrl() {
+    var a;
+    return function (url) {
+      if (!a) a = document.createElement('a');
+      a.href = url;
+      return a.href;
+    };
+  };
 
   function observeDOM(obj, callback) {
     var MutationObserver = window.MutationObserver || window.WebKitMutationObserver,
@@ -209,10 +225,9 @@
   };
 
   // Observe a specific DOM element:
-  // observeDOM(document.getElementsByTagName('html')[0], function () {
-  //   DOMManager.collectPageResource();
-  // });
-  DOMManager.collectPageResource();
+  observeDOM(document.getElementsByTagName('html')[0], function () {
+    DOMManager.collectPageResource();
+  });
 
   /**
    * Demo
@@ -237,7 +252,7 @@
   })
 
   removeButton.addEventListener('click', function (e) {
-    nodes[0].node.remove();
+    nodes[0] && nodes[0].node.remove();
   })
 
   Element.prototype.remove = function () {
