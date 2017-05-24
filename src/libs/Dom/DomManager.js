@@ -55,8 +55,6 @@
   };
   var AUDIO = 'AUDIO';
   var VIDEO = 'VIDEO';
-  var SOURCE = 'SOURCE';
-  var TRACK = 'TRACK';
   var generateAbsoluteUrl = getAbsoluteUrl();
   //TODO: url格式化，规范，如何比较？
   //TODO: audio vedio 资源加载研究
@@ -197,10 +195,10 @@
     props.forEach(function (prop) {
       if (isDOMNode(node) && node.hasAttribute(prop['definedProp']) && compareURL(node.getAttribute(prop['definedProp']), url)) {
         node.setAttribute(prop['prop'], objectURL);
-        if (type === AUDIO || type === VIDEO) {
+        if (type === 'audio' || type === 'video') {
           node.load();
         }
-        if (type === SOURCE || type === TRACK) {
+        if (type === 'source' || type === 'track') {
           node.parentNode && node.parentNode.load();
         }
         node.onload = function () {
