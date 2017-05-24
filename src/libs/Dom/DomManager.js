@@ -120,6 +120,26 @@
   }
 
   /**
+   * 检测 DOM 变化
+   * @param node
+   * @param callback
+   */
+  DOMManager.observeDOM = function (node, callback) {
+    var MutationObserver = window.MutationObserver || window.WebKitMutationObserver,
+      eventListenerSupported = window.addEventListener;
+    if (MutationObserver) {
+      var obs = new MutationObserver(function (mutations) {
+        if (mutations[0].addedNodes.length || mutations[0].removedNodes.length)
+          callback();
+      });
+      obs.observe(node, {childList: true, subtree: true});
+    } else if (eventListenerSupported) {
+      node.addEventListener('DOMNodeInserted', callback, false);
+      node.addEventListener('DOMNodeRemoved', callback, false);
+    }
+  };
+
+  /**
    * 格式化收集到的资源
    * @param rawData
    * @returns {Array.<*>}
@@ -273,76 +293,5 @@
       return a.href;
     };
   };
-
-  /**
-   * 检测 DOM 变化
-   * @param node
-   * @param callback
-   */
-  function observeDOM(node, callback) {
-    var MutationObserver = window.MutationObserver || window.WebKitMutationObserver,
-      eventListenerSupported = window.addEventListener;
-    if (MutationObserver) {
-      var obs = new MutationObserver(function (mutations) {
-        if (mutations[0].addedNodes.length || mutations[0].removedNodes.length)
-          callback();
-      });
-      obs.observe(DOM, {childList: true, subtree: true});
-    } else if (eventListenerSupported) {
-      node.addEventListener('DOMNodeInserted', callback, false);
-      node.addEventListener('DOMNodeRemoved', callback, false);
-    }
-  };
-
-  observeDOM(document.getElementsByTagName('html')[0], function () {
-    DOMManager.collectPageResource();
-  });
-
-  /**
-   * Presentation
-   * @type {Element}
-   */
-  var setButton = document.getElementById('set');
-  var resetButton = document.getElementById('reset');
-  var removeButton = document.getElementById('remove');
-
-  var testURL = ['./img.png', './video.mp4', './audio.mp3'];
-
-  setButton.addEventListener('click', function (e) {
-    testURL.forEach(function (url) {
-      loadBlobResource(url);
-    })
-  })
-
-  resetButton.addEventListener('click', function (e) {
-    testURL.forEach(function (url) {
-      DOMManager.onResourceLoadFailed(url);
-    })
-  })
-
-  removeButton.addEventListener('click', function (e) {
-    nodes[0] && nodes[0].node.remove();
-  })
-
-  Element.prototype.remove = function () {
-    this.parentElement.removeChild(this);
-  }
-
-  /**
-   * 构造 Blob 对象，演示使用
-   * @param url
-   */
-  function loadBlobResource(url) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.responseType = 'blob';
-    xhr.onload = function (e) {
-      if (this.status === 200) {
-        var myBlob = this.response;
-        DOMManager.replacePageResource(url, myBlob);
-      }
-    };
-    xhr.send();
-  }
 
 })()

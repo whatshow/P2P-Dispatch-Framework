@@ -4,9 +4,10 @@
         PPDF 测试
     </title>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css">
 </head>
-<body style="display: flex">
-<div>
+<body class="container">
+<div class="block">
     <p>IMG</p>
     <img width="100px" ppdf-src="img.png" alt="SRC 为空"/>
 
@@ -32,12 +33,13 @@
         <source ppdf-src="./audio.mp3" type="audio/mp3">
     </audio>
 </div>
-<div style="display: flex;align-items: center;justify-content: center">
-    <button id="set">设置BLOB</button>
-    <button id="reset">加载默认资源</button>
-    <button id="remove">移除资源</button>
+<div class="buttonContainer">
+    <button class="button" id="set">分发 BLOB 资源</button>
+    <button class="button" id="reset">加载默认资源</button>
+    <button class="button" id="remove">移除 DOM 节点</button>
+    <button class="button" id="restore">恢复</button>
 </div>
-
-<script src="DomManager.js"></script>
+<script src="../DomManager.js"></script>
+<script src="Presentation.js"></script>
 </body>
 </html>
