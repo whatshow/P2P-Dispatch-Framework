@@ -30,15 +30,17 @@
       //增加控制器
       window.ppdf.signal.addController(function(res){
         switch(parseInt(res.code)){
-          //收到请求描述信息
+          //收到提供描述信息
           case 1003:
             
             break;
           //收到响应描述
           case 1004:
+            
             break;
           //收到候选信息
           case 1005:
+            
             break;
           //接收到发送数据请求，准备发送数据
           case 1201:
@@ -255,6 +257,24 @@
       
       //执行到此说明遮脸连接还没有释放，重新执行本次任务
       window.ppdf.p2p.PeerClientPool.doMission(client);
-    }
+    },
+    /**
+     * 收到提供描述
+     * @data          websocket返回对象中的data字段
+     */
+    onOfferDesc:  function(){
+    
+    },
+    /**
+     * 收到响应描述
+     * @data          websocket返回对象中的data字段
+     */
+    onAnswerDesc: function(){
+    
+    },
+    /**
+     * 收到候选信息
+     * @data          websocket
+     */
   };
 })();

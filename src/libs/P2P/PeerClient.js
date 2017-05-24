@@ -6,6 +6,7 @@ window.ppdf.p2p.PeerClient = function(live){
     var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
     this.obj = new RTCPeerConnection(window.ppdf.config.p2p);     //p2p对象
     this.live = live ? live:3000;                                 //生存时间
+    this.release = null;                                          //过期释放函数初始化为空
     this.setRelease();                                            //一旦创建就会发生释放
     this.mission = null;                                          //任务
     this.targetAddress = null;                                    //对方地址
@@ -33,18 +34,25 @@ window.ppdf.p2p.PeerClient.prototype.setRelease = function(timeout){
   }
   //重新设置释放函数，准备到点释放函数
   this.release = setTimeout(function(){
-    //释放p2p客户端
-    peerclient.obj = null;
-    //释放任务
-    //如果有任务，则执行任务的失败回调
-    if(peerclient.mission){
-      peerclient.mission.fail();
-    }
-    //释放目标地址
-    peerclient.targetAddress = null;
-    //释放时间戳
-    peerclient.timestamp = null;
+    //执行立刻释放
+    peerclient.releaseImmediately();
   }, timeout);
+};
+/**
+ * 立刻释放客户端
+ */
+window.ppdf.p2p.PeerClient.prototype.releaseImmediately = function(){
+  //释放p2p客户端
+  this.obj = null;
+  //释放任务
+  //如果有任务，则执行任务的失败回调
+  if(this.mission){
+    this.mission.fail();
+  }
+  //释放目标地址
+  this.targetAddress = null;
+  //释放时间戳
+  this.timestamp = null;
 };
 /**
  * 中断释放客户端
