@@ -98,9 +98,16 @@ window.ppdf.p2p.PeerClient.prototype.hasLocalDesc = function(desc){
  * 绑定任务
  * @mission       任务
  */
-window.ppdf.p2p.PeerClient.prototype.bindMission = function(mission){
+window.ppdf.p2p.PeerClient.prototype.setMission = function(mission){
   this.mission = mission;
 };
+/**
+ * 获取任务
+ */
+window.ppdf.p2p.PeerClient.prototype.getMission = function(){
+  return this.mission;
+};
+
 /**
  * 获取时间戳
  */

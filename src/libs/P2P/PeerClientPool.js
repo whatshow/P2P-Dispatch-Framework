@@ -32,6 +32,7 @@
         switch(parseInt(res.code)){
           //收到请求描述信息
           case 1003:
+            
             break;
           //收到响应描述
           case 1004:
@@ -86,10 +87,38 @@
     /**
      * 执行任务（尝试建立连接，连接建立成功，则开始执行传输）
      * @client                客户端
-     * @mission               任务
+     * @mission               任务（不传递表示再次执行任务）
      */
     doMission:  function(client, mission){
-      client.bindMission(mission);
+      //中断释放过程
+      client.cutRelease();
+      //检查传递的参数
+      if(!mission){
+        //如果没有设置任务，则采用client自己的任务
+        mission = client.getMission();
+      }else{
+        //有任务则设置任务
+        client.setMission(mission);
+      }
+      //如果依旧没有任务，则说明本身就没有任务，直接结束
+      if(!mission){
+        return;
+      }
+      
+      //执行到此说明一切准备就绪，开始发送数据索取请求
+      window.ppdf.signal.send(JSON.stringify({
+        code:   3201,
+        data:   {
+          offer:  {
+            //IP地址
+            address:    mission.getNextProviderAddress()
+          },
+          answer: {
+            //时间戳
+            timestamp:  client.getTimestamp()
+          }
+        }
+      }));
     },
     /**
      * 根据desc寻找PeerClient
@@ -138,11 +167,6 @@
         }
       }
     },
-    /**
-     * 执行下一个任务
-     */
-    
-    
     
     /*** 接收到消息的回调 ***/
     /**
@@ -159,13 +183,13 @@
         }
         //如果构造失败，则说明任务并发达到最高，则拒绝本次传输
         if(!client){
+          reject(window.ppdf.Error(40022, "拒绝提供数据传输服务（本地线程并发达到最高，再并发影响效率）", null));
           //通知失败
           data.offer.isAvailable = false;
           window.ppdf.signal.send(JSON.stringify({
             code:             3202,
             data:             data
           }));
-          reject(window.ppdf.Error(40022, "拒绝提供数据传输服务（本地线程并发达到最高，再并发影响效率）", null));
           return;
         }
         
@@ -182,7 +206,13 @@
           }));
         }).catch(function(e){
           //构造描述对象失败
-          reject(window.ppdf.Error(40023, "构造提供描述失败", e))
+          reject(window.ppdf.Error(40023, "构造提供描述失败", e));
+          //通知失败
+          data.offer.isAvailable = false;
+          window.ppdf.signal.send(JSON.stringify({
+            code:             3202,
+            data:             data
+          }));
         });
       });
     },
@@ -201,10 +231,30 @@
         }
       }
       
-      //如果找到了，则执行
+      //如果没有找到这个客户端，说明客户端已经释放了，则忽略这个消息且执行下个任务
       if(!client){
-      
+        //寻找可用的客户端
+        client = window.ppdf.p2p.PeerClientPool.findUsefulClient();
+        //如果没有空闲的，则尝试新增
+        if(!client){
+          client = window.ppdf.p2p.PeerClientPool.addClient();
+        }
+        //如果还是获取不到客户端，则本次转台结束
+        if(!client){
+          //结束
+          return;
+        }
+        //执行到此说明找到了一个可用的客户端，则尝试执行下个任务
+        var mission = missionQueue.shift();
+        if(mission){
+          window.ppdf.p2p.PeerClientPool.doMission(client, mission);
+          //结束
+          return;
+        }
       }
+      
+      //执行到此说明遮脸连接还没有释放，重新执行本次任务
+      window.ppdf.p2p.PeerClientPool.doMission(client);
     }
   };
 })();

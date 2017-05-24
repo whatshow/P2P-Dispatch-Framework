@@ -11,7 +11,7 @@
     this.url = url;
     this.md5 = md5;
     this.targetAddressList = targetAddressList;
-    this.curTargetAddressIndex = 0;                   //当前采用的数据提供者
+    this.curTargetAddressIndex = -1;                   //当前采用的数据提供者
     this.succeed = succeed;
     this.fail = fail;
   };
@@ -20,18 +20,16 @@
    * 获取下一个数据提供者地址
    */
   window.ppdf.p2p.Mission.prototype.getNextProviderAddress = function(){
-    var nextProviderAddress;
+    //移动游标
+    this.curTargetAddressIndex++;
     
+    //检查是否有值
     if(this.targetAddressList && this.curTargetAddressIndex < this.targetAddressList.length){
       //返回真实值
-      nextProviderAddress = this.targetAddressList[this.curTargetAddressIndex];
-      //移动游标
-      this.curTargetAddressIndex++;
+      return this.targetAddressList[this.curTargetAddressIndex];
     }else{
       //没有结果
-      nextProviderAddress = null;
+      return null;
     }
-    //返回结果
-    return nextProviderAddress;
   };
 })();
