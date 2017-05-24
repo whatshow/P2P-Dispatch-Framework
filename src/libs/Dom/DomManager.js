@@ -36,13 +36,13 @@
 
 (function () {
   var DOMManager = window.DOMManager = {};
-  var resourceTypes = ['img', 'audio', 'video', 'source', 'track'];
+  var resourceTypes = ['img', 'audio', 'video', 'source', 'track', 'poster'];
   var defaultProp = 'ppdf-src';
   var resources = [];
   var nodes = [];
   var resourceMap = {
-    'img': {definedProp: 'ppdf-src', prop: 'src'},
-    'video': {definedProp: 'ppdf-src', prop: 'src'},
+    'img': [{definedProp: 'ppdf-src', prop: 'src'}],
+    'video': [{definedProp: 'ppdf-src', prop: 'src'}, {definedProp: 'ppdf-poster', prop: 'poster'}],
     'audio': {definedProp: 'ppdf-src', prop: 'src'},
     'source': {definedProp: 'ppdf-src', prop: 'src'},// video or audio
     'track': {definedProp: 'ppdf-src', prop: 'src'},// video or audio
@@ -59,26 +59,32 @@
   //TODO: audio vedio 资源加载研究
   //TODO: 视频音频浏览器支持情况检测
   //TODO: 内存释放研究
-  //TODO: video poster 支持
   DOMManager.collectPageResource = function (callback) {
     var rawData = resourceTypes
       .map(function (type) {
         return collectNodeResource(type);
       })
+      .reduce(function (a, b) {
+        return a.concat(b);
+      }, [])
       .filter(function (item) {
-        return !item.url;
+        return item.urls.length !== 0;
+      });
+
+    resources = rawData
+      .map(function (data) {
+        return data.urls;
       })
       .reduce(function (a, b) {
         return a.concat(b);
-      }, []);
-
-    resources = rawData.filter(function (data, index, self) {
-      return self.findIndex(function (t) {
-          return t.url === data.url;
-        }) === index;
-    }).map(function (data) {
-      return {url: data.url};
-    })
+      }, [])
+      .map(function (url) {
+        return {url: url};
+      }).filter(function (data, index, self) {
+        return self.findIndex(function (item) {
+            return item.url === data.url;
+          }) === index;
+      })
 
     nodes = rawData.map(function (data) {
       return {type: data.type, node: data.node};
@@ -92,15 +98,17 @@
   DOMManager.onResourceLoadFailed = function (url) {
     nodes.forEach(function (item) {
       var node = item.node;
-      var definedProp = resourceMap[item.type]['definedProp'];
-      if (node.getAttribute(definedProp) === url) {
-        console.log('恢复节点资源：', resourceMap[item.type]['prop'], '=>', node.getAttribute(definedProp));
-        node.setAttribute(resourceMap[item.type]['prop'], node.getAttribute(definedProp));
-      }
+      var type = item.type;
+      var props = Array.isArray(resourceMap[type]) ? resourceMap[type] : [resourceMap[type]];
+      props.forEach(function (prop) {
+        if (node.getAttribute(prop['definedProp']) === url) {
+          resetNodeResource(node, prop['prop'], node.getAttribute(prop['definedProp']));
+        }
+      })
     })
   }
 
-  DOMManager.addNodeResource = function (url, blob) {
+  DOMManager.replacePageResource = function (url, blob) {
     var objectURL = window.URL && window.URL.createObjectURL(blob);
     nodes.forEach(function (item) {
       console.log('添加节点资源：', url, '=>', objectURL);
@@ -115,10 +123,38 @@
       });
   }
 
+  function setNodeResource(node, type, url, objectURL) {
+    var props = Array.isArray(resourceMap[type]) ? resourceMap[type] : [resourceMap[type]];
+    props.forEach(function (prop) {
+      if (isDOMNode(node) && node.hasAttribute(prop['definedProp']) && node.getAttribute(prop['definedProp']) === url) {
+        node.setAttribute(prop['prop'], objectURL);
+        if (type === AUDIO || type === VIDEO) {
+          node.load();
+        }
+        if (type === SOURCE || type === TRACK) {
+          node.parentNode && node.parentNode.load();
+        }
+        node.onload = function () {
+          window.URL && window.URL.revokeObjectURL(objectURL);
+        }
+      }
+    })
+
+  }
+
+  function resetNodeResource(node, prop, url) {
+    console.log('恢复节点资源：', prop, '=>', url);
+    isDOMNode(node) && node.setAttribute(prop, url);
+  }
+
   function getNodes(type) {
     return Array.prototype.slice.call(document.getElementsByTagName(type))
       .filter(function (node) {
-        if (!node.hasAttribute(resourceMap[type]['definedProp']))return false;
+        var props = Array.isArray(resourceMap[type]) ? resourceMap[type] : [resourceMap[type]];
+        var result = props.some(function (prop) {
+          return node.hasAttribute(prop['definedProp'])
+        })
+        if (result === false)return false;
         if (type === 'source' || type === 'track') {
           return node.parentNode && (node.parentNode.nodeName === AUDIO || node.parentNode.nodeName === VIDEO);
         }
@@ -127,16 +163,18 @@
   }
 
   function getURL(node, type) {
-    return isDOMNode(node) ?
-      {
-        url: node.getAttribute(resourceMap[type]['definedProp'] || defaultProp),
+    var props = Array.isArray(resourceMap[type]) ? resourceMap[type] : [resourceMap[type]];
+    if (!isDOMNode(node)) {
+      return {
         node: node,
+        urls: [],
         type: type
-      } : {
-        node: node,
-        url: '',
-        type: type
-      };
+      }
+    }
+    var urls = props.map(function (prop) {
+      return node.getAttribute(prop['definedProp'] || defaultProp);
+    })
+    return {node: node, urls: urls, type: type};
   }
 
   function checkNodeIsInList(node) {
@@ -145,26 +183,12 @@
     });
   }
 
-  function isDOMNode(node) {
-    return !!node.nodeName;
+  function compareURL(url1, url2) {
+
   }
 
-  function setNodeResource(node, type, url, objectURL) {
-    var prop = resourceMap[type]['prop'];
-    var definedProp = resourceMap[type]['definedProp'];
-    if (isDOMNode(node) && node.hasAttribute(definedProp) && node.getAttribute(definedProp) === url) {
-      node.setAttribute(prop, objectURL);
-      if (type === AUDIO || type === VIDEO) {
-        node.load();
-      }
-      if (type === SOURCE || type === TRACK) {
-        node.parentNode && node.parentNode.load();
-      }
-      node.onload = function () {
-        window.URL && window.URL.revokeObjectURL(objectURL);
-      }
-    }
-
+  function isDOMNode(node) {
+    return !!node.nodeName;
   }
 
   function observeDOM(obj, callback) {
@@ -185,9 +209,10 @@
   };
 
   // Observe a specific DOM element:
-  observeDOM(document.getElementsByTagName('html')[0], function () {
-    DOMManager.collectPageResource();
-  });
+  // observeDOM(document.getElementsByTagName('html')[0], function () {
+  //   DOMManager.collectPageResource();
+  // });
+  DOMManager.collectPageResource();
 
   /**
    * Demo
@@ -226,7 +251,7 @@
     xhr.onload = function (e) {
       if (this.status === 200) {
         var myBlob = this.response;
-        DOMManager.addNodeResource(url, myBlob);
+        DOMManager.replacePageResource(url, myBlob);
       }
     };
     xhr.send();
