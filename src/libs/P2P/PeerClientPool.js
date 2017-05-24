@@ -223,7 +223,13 @@
     tryNextProvider:  function(data){
       var i;
       //找到这个客户端
-      
+      var timestamp = data.answer.timestamp;
+      var client;
+      for(i = 0; i < pool.length; i++){
+        if(pool[i].hasTimestamp(timestamp)){
+          client = pool[i];
+        }
+      }
       
       //如果没有找到这个客户端，说明客户端已经释放了，则忽略这个消息且执行下个任务
       if(!client){
