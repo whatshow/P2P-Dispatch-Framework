@@ -7,37 +7,20 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="container">
-<div class="block">
-    <p>IMG</p>
-    <img width="100px" ppdf-src="img.png" alt="SRC 为空"/>
-
-    <p>VIDEO</p>
-    <video controls width="100px" ppdf-src="./video.mp4" ppdf-poster="img.png">
-        你的浏览器不支持 <code>video</code>
-    </video>
-
-    <p>AUDIO</p>
-    <audio controls width="100px" ppdf-src="./audio.mp3">
-        你的浏览器不支持 <code>audio</code>
-    </audio>
-
-    <p>VIDEO SOURCE</p>
-    <video controls width="100px" ppdf-poster="img.png">
-        你的浏览器不支持 <code>video</code>
-        <source ppdf-src="./video.mp4" type="video/mp4">
-    </video>
-
-    <p>AUDIO SOURCE</p>
-    <audio controls width="100px">
-        你的浏览器不支持 <code>audio</code>
-        <source ppdf-src="./audio.mp3" type="audio/mp3">
-    </audio>
-</div>
+<div class="block"></div>
 <div class="buttonContainer">
     <button class="button" id="set">分发 BLOB 资源</button>
     <button class="button" id="reset">加载默认资源</button>
     <button class="button" id="remove">移除 DOM 节点</button>
     <button class="button" id="restore">重置</button>
+    <div class="progress-bar">
+        <div class="bar positive">
+            <span class="real-time-progress"></span>
+        </div>
+        <div class="bar negative">
+            <span class="real-time-progress"></span>
+        </div>
+    </div>
 </div>
 <script src="../DomManager.js"></script>
 <script src="Presentation.js"></script>

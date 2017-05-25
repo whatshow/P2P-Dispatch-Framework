@@ -98,7 +98,7 @@
       var props = Array.isArray(resourceMap[type]) ? resourceMap[type] : [resourceMap[type]];
       props.forEach(function (prop) {
         if (compareURL(node.getAttribute(prop['definedProp']), url)) {
-          resetNodeResource(node, prop['prop'], node.getAttribute(prop['definedProp']));
+          resetNodeResource(node, type, prop['prop'], node.getAttribute(prop['definedProp']));
         }
       })
     })
@@ -195,12 +195,6 @@
     props.forEach(function (prop) {
       if (isDOMNode(node) && node.hasAttribute(prop['definedProp']) && compareURL(node.getAttribute(prop['definedProp']), url)) {
         node.setAttribute(prop['prop'] || 'src', objectURL);
-        if (type === 'audio' || type === 'video') {
-          node.load();
-        }
-        if (type === 'source' || type === 'track') {
-          node.parentNode && node.parentNode.load();
-        }
         node.onload = function () {
           urlCreator.revokeObjectURL(objectURL);
         }
@@ -211,12 +205,19 @@
   /**
    * 恢复 DOM 节点资源为默认资源
    * @param node
+   * @param type
    * @param prop
    * @param url
    */
-  function resetNodeResource(node, prop, url) {
+  function resetNodeResource(node, type, prop, url) {
     console.log('恢复节点资源：', prop, '=>', url);
     isDOMNode(node) && node.setAttribute(prop || 'src', url);
+    if (type === 'audio' || type === 'video') {
+      node.load();
+    }
+    if (type === 'source' || type === 'track') {
+      node.parentNode && node.parentNode.load();
+    }
   }
 
   /**
