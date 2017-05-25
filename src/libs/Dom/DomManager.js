@@ -75,7 +75,6 @@
       .filter(function (item) {
         return item.urls.length !== 0;
       });
-
     resources = generateFormattedResource(rawData);
     nodes = generateFormattedNodes(rawData);
 
@@ -154,9 +153,9 @@
         return {url: url, absoluteUrl: generateAbsoluteUrl(url)};
       }).filter(function (data, index, self) {
         // findIndex: IE not support, Chrome 45, Firefox 25, Safari 7.1
-        return self.findIndex(function (item) {
-            return compareURL(item.url, data.url);
-          }) === index;
+        return (self.findIndex(function (item) {
+          return compareURL(item.url, data.url);
+        }) === index && data.url );
       })
   }
 
