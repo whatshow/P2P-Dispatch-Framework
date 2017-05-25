@@ -32,15 +32,15 @@
         switch(parseInt(res.code)){
           //收到提供描述信息
           case 1003:
-            
+            window.ppdf.p2p.PeerClientPool.onOfferDesc(res.data);
             break;
           //收到响应描述
           case 1004:
-            
+            window.ppdf.p2p.PeerClientPool.onAnswerDesc(res.data);
             break;
           //收到候选信息
           case 1005:
-            
+            window.ppdf.p2p.PeerClientPool.onCandidate(res.data);
             break;
           //接收到发送数据请求，准备发送数据
           case 1201:
@@ -50,14 +50,14 @@
             break;
           //接收到拒绝服务，准备使用下一个提供者
           case 1202:
-            window.ppdf.p2p.PeerClientPool.tryNextProvider(res.data);
+            window.ppdf.p2p.PeerClientPool.onRefuseProvide(res.data);
             break;
           //接收到终止请求，释放用于发送数据的客户端
           case 1203:
+            window.ppdf.p2p.PeerClientPool.onRefuseRequest(res.data);
             break;
         }
       });
-      //初始化
     },
     /**
      * 增加一个任务
@@ -121,6 +121,7 @@
         window.ppdf.signal.send(JSON.stringify({
           code:   3201,
           data:   {
+            url:          mission.url,
             offer:  {
               //IP地址
               address:    address
@@ -138,12 +139,25 @@
       }
     },
     /**
+     * 根据时间戳寻找客户端
+     * @timestamp             时间戳
+     */
+    findPeerClientByTimestamp:  function(timestamp){
+      for(var i = 0; i < pool.length; i++){
+        if(pool[i].hasTimestamp(timestamp) && !pool[i].isEmpty()){
+          return pool[i];
+        }else if(i == pool.length - 1){
+          return null;
+        }
+      }
+    },
+    /**
      * 根据desc寻找PeerClient
      * @desc                  描述信息
      */
     findPeerClientByDesc: function(desc){
       for(var i = 0; i < pool.length; i++){
-        if(pool[i].hasLocalDesc(desc)){
+        if(pool[i].hasLocalDesc(desc) && !pool[i].isEmpty()){
           return pool[i];
         }else if(i == pool.length - 1){
           return null;
@@ -211,8 +225,11 @@
         //执行到此说明，可用获取到一个可用的客户端
         //绑定对方地址
         client.bindTargetAddress(data.answer.address);
-        //构造提供描述
-        client.createOffer().then(function(desc){
+        //准备描述
+        client.prepareOffer(data.url).then(function(){
+          //构造提供描述
+          return client.createOffer();
+        }).then(function(desc){
           //配置描述 & 时间戳
           data.offer.desc = desc;
           data.offer.timestamp = client.getTimestamp();
@@ -222,8 +239,8 @@
             data:             data
           }));
         }).catch(function(e){
-          //构造描述对象失败
-          reject(window.ppdf.Error(40023, "构造提供描述失败", e));
+          //提供描述失败，通知对方
+          reject(window.ppdf.Error(40023, "未知原因拒绝提供数据", e));
           //通知拒绝服务
           data.offer.isAvailable = false;
           window.ppdf.signal.send(JSON.stringify({
@@ -234,20 +251,16 @@
       });
     },
     /**
-     * 尝试下一个提供者（执行速度快，不用释放）
+     * 收到拒绝服务（执行速度快，不用释放）
      * @data                websocket返回对象中的data字段
      */
-    tryNextProvider:  function(data){
+    onRefuseProvide:  function(data){
       var i;
-      //找到这个客户端
-      var timestamp = data.answer.timestamp;
-      var client;
-      for(i = 0; i < pool.length; i++){
-        if(pool[i].hasTimestamp(timestamp)){
-          client = pool[i];
-          break;
-        }
-      }
+      //找到这个客户端（优先采用时间戳，如果没有时间戳，则采用描述信息）
+      var client =
+        data.answer.timestamp ?
+          window.ppdf.p2p.PeerClientPool.findPeerClientByTimestamp(data.answer.timestamp) :
+          window.ppdf.p2p.PeerClientPool.findPeerClientByDesc(data.answer.desc);
       
       //如果没有找到这个客户端，说明客户端已经释放了，则忽略这个消息且执行下个任务
       if(!client){
@@ -278,16 +291,12 @@
      * 收到终止数据请求
      * @data          websocket返回对象中的data字段
      */
-    onTerminatingDateRequest: function(data){
+    onRefuseRequest: function(data){
       var i;
-      //找到匹配offer的client
-      var client;
-      for(i = 0; i < pool.length; i++){
-        if(pool[i].hasTimestamp(data.offer.timestamp)){
-          client = pool[i];
-          break;
-        }
-      }
+      //找到匹配offer的client（优先采用时间戳匹配，如果找不到则采用描述信息）
+      var client = data.offer.timestamp ?
+        this.findPeerClientByTimestamp(data.offer.timestamp) :
+        this.findPeerClientByDesc(data.offer.desc);
       //如果没有找到，说明客户端已经被释放掉了,直接结束
       if(!client){
         return;
@@ -304,13 +313,7 @@
       var i;
       
       //寻找到本地的客户端
-      var client;
-      for(i = 0; i < pool.length; i++){
-        if(pool[i].hasTimestamp(data.answer.timestamp)){
-          client = pool[i];
-          break;
-        }
-      }
+      var client = this.findPeerClientByTimestamp(data.answer.timestamp);
       //如果没有找到客户端，说明这个连接已经被释放了，不再处理
       if(!client){
         return;
@@ -319,6 +322,9 @@
       //执行到此说明一切正常，则开始响应
       //中断释放过程：如果中断失败，则说明客户端已经释放过了，已经触发了任务失败
       if(client.cutRelease()){
+        //准备响应数据通道
+        client.prepareAnswer();
+        //构造响应描述
         client.answerDesc(data.offer.desc).then(function(){
           //响应描述成功
           data.answer.desc = desc;
@@ -346,14 +352,60 @@
      * @data          websocket返回对象中的data字段
      */
     onAnswerDesc: function(data){
-    
+      var i;
+      //找到这个客户端
+      var client = this.findPeerClientByTimestamp(data.offer.timestamp);
+      //如果找不到这个客户度端，则说明已经过期了，通知对方拒绝服务
+      if(!client){
+        data.offer.isAvailable = false;
+        window.ppdf.signal.send(JSON.stringify({
+          code:             3202,
+          data:             data
+        }));
+        return;
+      }
+      
+      //执行到此说明找到了客户端
+      client.storeAnswerDesc(data.answer.desc);
     },
     /**
      * 收到候选信息
      * @data          websocket
      */
     onCandidate:  function(data){
-    
+      var client;
+      //提供者发来的候选信息
+      if(data.offer.candidate){
+        client = this.findPeerClientByDesc(data.answer.desc);
+        //如果找不到客户端，中止数据请求
+        if(!client){
+          data.answer.isAvailable = false;
+          window.ppdf.signal.send(JSON.stringify({
+            code:       3203,
+            data:       data
+          }));
+          return;
+        }
+        //指定到此说明找到了客户端，保存数据
+        client.setCandidate(data.answer.candidate);
+      }
+      
+      //响应者发来的候选信息
+      if(data.answer.candidate){
+        client = this.findPeerClientByDesc(data.offer.desc);
+        //如果找不到客户端，拒绝数据提供
+        if(!client){
+          data.offer.isAvailable = false;
+          window.ppdf.signal.send(JSON.stringify({
+            code:             3202,
+            data:             data
+          }));
+          return;
+        }
+        //指定到此说明找到了客户端，保存数据
+        client.setCandidate(data.answer.candidate);
+      }
+      
     }
   };
 })();

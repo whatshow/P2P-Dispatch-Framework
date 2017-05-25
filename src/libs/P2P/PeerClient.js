@@ -13,6 +13,8 @@ window.ppdf.p2p.PeerClient = function(live, onCandidate){
     this.targetAddress = null;                                    //对方地址
   
     this.timestamp = new Date().valueOf();                        //时间戳，用来唯一标识一个客户端
+  
+    this.setOnIceCandidate();                                     //采用默认的接收候选信息回调
 };
 /**
  * 设置释放客户端
@@ -44,13 +46,19 @@ window.ppdf.p2p.PeerClient.prototype.setRelease = function(timeout){
  * @data              数据(如果传入了数据，则执行任务的成功回调；如果不传，则执行任务的失败回调)
  */
 window.ppdf.p2p.PeerClient.prototype.releaseImmediately = function(data){
+  //释放发送数据通道
+  try{
+    this.obj.sendChannel.close();
+  }catch(e){}
+  this.obj.sendChannel = null;
+  
   //释放p2p客户端
   try{
     this.obj.close();
   }catch(e){}
   this.obj = null;
   
-  //释放任务
+  //释放任务（可能不存在任务，因为这个客户端是用来提供数据的）
   if(data){
     //成功
     if(this.mission && this.mission.succeed){
@@ -153,36 +161,54 @@ window.ppdf.p2p.PeerClient.prototype.hasTargetAddress = function(targetAddress){
 };
 /**
  * 绑定目标
- * @targetAddress     对方地址
+ * @targetAddress         对方地址
  */
 window.ppdf.p2p.PeerClient.prototype.bindTargetAddress = function(targetAddress){
   this.targetAddress = targetAddress;
 };
-
-
+/**
+ * 准备传输数据（文件不做分块）
+ * @url                   数据的url表示
+ */
+window.ppdf.p2p.PeerClient.prototype.prepareOffer = function(url){
+  var peerclient = this.obj;
+  return new Promise(function(resovle, reject){
+    window.ppdf.database.getData(url).then(function(dbRes){
+      //获取了数据
+      var blob = dbRes.data;
+      //构建传输通道
+      if(peerclient.sendChannel){
+        try{
+          peerclient.sendChannel.close();
+        }catch(e){
+          console.warn("创建传输通道发生错误，代码写错了");
+        }
+      }
+      
+      peerclient.sendChannel = peerclient.createDataChannel('sendDataChannel');
+      peerclient.sendChannel.binaryType = 'arraybuffer';
+      //当客户端打开时
+      peerclient.sendChannel.onopen = function(e){
+        window.ppdf.Utils.file.blob2binary(blob).then(function(binaryData){
+          peerclient.sendChannel.send(binaryData);
+        });
+        //此时数据传输已经完成，释放客户端
+        peerclient.releaseImmediately();
+      };
+      //当客户端关闭时
+      peerclient.sendChannel.onclose = function(e){};
+    }).catch(function(error){
+      //获取数据失败
+      reject(error);
+    });
+  });
+};
 /**
  * 准备描述对象
  */
 window.ppdf.p2p.PeerClient.prototype.createOffer = function(){
   var client = this.obj;
-  //构造发送通道
-  var sendChannel = client.createDataChannel('sendDataChannel');
-  sendChannel.binaryType = 'arraybuffer';
-  sendChannel.onopen = function(e){
-    var readyState = sendChannel.readyState;
-    if (readyState === 'open') {
-      window.ppdf.database.getData("http://192.168.50.158:10000/img/1.jpeg").then(function(dbRes){
-        console.log(dbRes);
-        //转成二进制发送
-        window.ppdf.Utils.file.blob2binary(dbRes.data).then(function(binaryData){
-          sendChannel.send(binaryData);
-        });
-      });
-    }
-  };
-  sendChannel.onclose = function(e){
-    var readyState = sendChannel.readyState;
-  };
+  
   //返回promise对象
   return new Promise(function(resolve, reject){
       //如果对象为空，则爆出空指针
@@ -205,12 +231,10 @@ window.ppdf.p2p.PeerClient.prototype.createOffer = function(){
   });
 };
 /**
- * 响应描述
- * @desc
+ * 准备响应
  */
-window.ppdf.p2p.PeerClient.prototype.answerDesc = function(desc){
+window.ppdf.p2p.PeerClient.prototype.prepareAnswer = function(){
   var client = this.obj;
-  //构造接收通道
   //构建接受通道
   client.ondatachannel = function(e) {
     //保存数据通道
@@ -221,10 +245,17 @@ window.ppdf.p2p.PeerClient.prototype.answerDesc = function(desc){
       blob = new Blob([event.data]);
     };
     receiveChannel.onclose = function(){
-      //释放客户端
+      //释放客户端，因为传入了参数，执行任务的成功回调
       client.releaseImmediately(blob);
     }
   };
+};
+/**
+ * 响应描述
+ * @desc
+ */
+window.ppdf.p2p.PeerClient.prototype.answerDesc = function(desc){
+  var client = this.obj;
   
   //返回promise对象
   return new Promise(function(resolve, reject){
@@ -265,6 +296,14 @@ window.ppdf.p2p.PeerClient.prototype.storeAnswerDesc = function(desc){
   });
 };
 /**
+ * 保存候选信息
+ * @candidate
+ */
+window.ppdf.p2p.PeerClient.prototype.setCandidate = function(candidate){
+  this.obj.addIceCandidate(candidate);
+};
+
+/**
  * 注入候选信息时回调
  * @callback(RTCPeerConnection, iceCandidate)     回调
  */
@@ -303,7 +342,7 @@ window.ppdf.p2p.PeerClient.prototype.setOnIceCandidate = function(callback){
                 //资源描述
                 desc:       this.remoteDescription,
                 //IP地址
-                address:    this.targetAddress
+                address:    peerclient.targetAddress
               }
             }
           }));
@@ -317,7 +356,7 @@ window.ppdf.p2p.PeerClient.prototype.setOnIceCandidate = function(callback){
                 //资源描述
                 desc:       this.remoteDescription,
                 //IP地址
-                address:    this.targetAddress
+                address:    peerclient.targetAddress
               },
               answer: {
                 //时间戳
