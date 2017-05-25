@@ -225,7 +225,7 @@
   function setAttribute(node, type, prop, url) {
     if (isDOMNode(node)) {
       // node.setAttribute(prop || 'src', url);
-      node[prop || 'src'] = url + '?t=' + new Date().getTime();
+      node[prop || 'src'] = url;
       // load video or audio
       if (type === 'audio' || type === 'video') {
         if (node.paused === false) {
