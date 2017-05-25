@@ -56,9 +56,9 @@
   var AUDIO = 'AUDIO';
   var VIDEO = 'VIDEO';
   var generateAbsoluteUrl = getAbsoluteUrl();
-  //TODO: url格式化，规范，如何比较？
+  //TODO: url格式化，规范，如何比较？(compare-url)
   //TODO: audio vedio 资源加载研究
-  //TODO: 视频音频浏览器支持情况检测
+  //TODO: 视频音频浏览器支持情况检测(Modernizr)
   //TODO: 内存释放研究
   /**
    * 收集资源
@@ -194,7 +194,7 @@
     var props = Array.isArray(resourceMap[type]) ? resourceMap[type] : [resourceMap[type]];
     props.forEach(function (prop) {
       if (isDOMNode(node) && node.hasAttribute(prop['definedProp']) && compareURL(node.getAttribute(prop['definedProp']), url)) {
-        node.setAttribute(prop['prop'] || 'src', objectURL);
+        setAttribute(node, type, prop['prop'], objectURL);
         node.onload = function () {
           urlCreator.revokeObjectURL(objectURL);
         }
@@ -211,12 +211,34 @@
    */
   function resetNodeResource(node, type, prop, url) {
     console.log('恢复节点资源：', prop, '=>', url);
-    isDOMNode(node) && node.setAttribute(prop || 'src', url);
-    if (type === 'audio' || type === 'video') {
-      node.load();
-    }
-    if (type === 'source' || type === 'track') {
-      node.parentNode && node.parentNode.load();
+    setAttribute(node, type, prop, url);
+  }
+
+  /**
+   * 设置节点资源
+   * @param node
+   * @param type
+   * @param prop
+   * @param url
+   */
+
+  function setAttribute(node, type, prop, url) {
+    if (isDOMNode(node)) {
+      // node.setAttribute(prop || 'src', url);
+      node[prop || 'src'] = url + '?t=' + new Date().getTime();
+      // load video or audio
+      if (type === 'audio' || type === 'video') {
+        if (node.paused === false) {
+          node.pause();
+        }
+        node.load();
+      }
+      if (type === 'source' || type === 'track') {
+        if (node.parentNode && node.parentNode.paused === false) {
+          node.parentNode.pause();
+        }
+        node.parentNode && node.parentNode.load();
+      }
     }
   }
 

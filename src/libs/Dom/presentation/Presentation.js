@@ -87,7 +87,7 @@
             <p>VIDEO with source</p>
             <video controls width="100px" ppdf-poster="img.png">
                 你的浏览器不支持 <code>video</code>
-                <source ppdf-src="./video.mp4" type="video/mp4">
+                <source ppdf-src="./big-video.mp4" type="video/mp4">
             </video>
         </div>
 
