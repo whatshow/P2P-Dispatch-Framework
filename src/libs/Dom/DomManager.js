@@ -38,7 +38,7 @@
   var DOMManager = window.DOMManager = {};
   var urlCreator = window.URL || window.webkitURL;
   // 需要收集的节点类型
-  var resourceTypes = ['img', 'audio', 'video', 'source', 'track', 'poster'];
+  var resourceTypes = ['img', 'audio', 'video', 'source', 'track'];
   // 默认收集的节点属性
   var defaultProp = 'ppdf-src';
   // 收集到的资源：[{url:url,absoluteUrl:absoluteUrl}]
@@ -194,7 +194,7 @@
     var props = Array.isArray(resourceMap[type]) ? resourceMap[type] : [resourceMap[type]];
     props.forEach(function (prop) {
       if (isDOMNode(node) && node.hasAttribute(prop['definedProp']) && compareURL(node.getAttribute(prop['definedProp']), url)) {
-        node.setAttribute(prop['prop'], objectURL);
+        node.setAttribute(prop['prop'] || 'src', objectURL);
         if (type === 'audio' || type === 'video') {
           node.load();
         }
@@ -216,7 +216,7 @@
    */
   function resetNodeResource(node, prop, url) {
     console.log('恢复节点资源：', prop, '=>', url);
-    isDOMNode(node) && node.setAttribute(prop, url);
+    isDOMNode(node) && node.setAttribute(prop || 'src', url);
   }
 
   /**

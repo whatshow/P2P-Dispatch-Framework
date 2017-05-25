@@ -70,7 +70,7 @@
     </audio>
 
     <p>VIDEO SOURCE</p>
-    <video controls width="100px" poster="img.png">
+    <video controls width="100px" ppdf-poster="img.png">
         你的浏览器不支持 <code>video</code>
         <source ppdf-src="./video.mp4" type="video/mp4">
     </video>
