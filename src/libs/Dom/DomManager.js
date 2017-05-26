@@ -117,6 +117,13 @@
   }
 
   /**
+   * 获取收集到的 DOM 节点
+   */
+  DOMManager.collectPageNodes = function () {
+    return nodes;
+  }
+
+  /**
    * 检测 DOM 变化
    * @param node
    * @param callback
@@ -222,20 +229,26 @@
    */
 
   function setAttribute(node, type, prop, url) {
-    if (isDOMNode(node)) {
-      // node.setAttribute(prop || 'src', url);
-      node[prop || 'src'] = url;
-      // load video or audio
-      if (type === 'audio' || type === 'video') {
-        if (node.paused === false) {
-          node.pause();
-        }
+    if (!isDOMNode(node))return;
+    // node.setAttribute(prop || 'src', url);
+    node[prop || 'src'] = url;
+    // load video or audio
+    if (type === 'audio' || type === 'video') {
+      if (node.paused === false) {
+        // 播放的资源保持播放状态
+        node.pause();
+        node.load();
+        node.play();
+      } else {
         node.load();
       }
-      if (type === 'source' || type === 'track') {
-        if (node.parentNode && node.parentNode.paused === false) {
-          node.parentNode.pause();
-        }
+    }
+    if (type === 'source' || type === 'track') {
+      if (node.parentNode && node.parentNode.paused === false) {
+        node.parentNode.pause();
+        node.parentNode.load();
+        node.parentNode.play();
+      } else {
         node.parentNode && node.parentNode.load();
       }
     }

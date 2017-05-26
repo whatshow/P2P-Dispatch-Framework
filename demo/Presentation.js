@@ -28,7 +28,8 @@
   })
 
   removeButton.addEventListener('click', function (e) {
-    alert('测试移除 DOM 节点是否触发资源重新收集')
+    var nodes = DOMManager.collectPageNodes();
+    nodes[0] && nodes[0].node.remove();
   })
 
   restoreButton.addEventListener('click', function () {
