@@ -1,8 +1,5 @@
 (function(){
     /*** 立刻执行的操作 ***/
-    //尝试阻止刷新页面
-    //ppdf.ConfigRefreshAndClose.startConfig("页面尚未加载完毕，退出可能造成错误。您确认要退出吗？");
-
     //变量
     var sources;                                                        //dom树中所有资源
     var resourceCatalog = {

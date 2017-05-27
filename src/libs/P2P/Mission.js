@@ -31,7 +31,6 @@
   window.ppdf.p2p.Mission.prototype.getNextProviderAddress = function(){
     //移动游标
     this.curTargetAddressIndex++;
-    
     //检查是否有值
     if(this.targetAddressList && this.curTargetAddressIndex < this.targetAddressList.length){
       //返回真实值
