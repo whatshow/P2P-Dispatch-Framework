@@ -34,7 +34,7 @@
 //   }
 // })();
 
-(function () {
+(function (window, document) {
   var DOMManager = window.DOMManager = {};
   var urlCreator = window.URL || window.webkitURL;
   // 需要收集的节点类型
@@ -56,10 +56,6 @@
   var AUDIO = 'AUDIO';
   var VIDEO = 'VIDEO';
   var generateAbsoluteUrl = getAbsoluteUrl();
-  //TODO: url格式化，规范，如何比较？(compare-url)
-  //TODO: audio vedio 资源加载研究
-  //TODO: 视频音频浏览器支持情况检测(Modernizr)
-  //TODO: 内存释放研究
   /**
    * 收集资源
    * @returns [{url:url,absoluteUrl:absoluteUrl}]
@@ -99,6 +95,20 @@
         if (compareURL(node.getAttribute(prop['definedProp']), url)) {
           resetNodeResource(node, type, prop['prop'], node.getAttribute(prop['definedProp']));
         }
+      })
+    })
+  }
+
+  /**
+   * 恢复所有资源为默认资源
+   */
+  DOMManager.resetAllResource = function () {
+    nodes.forEach(function (item) {
+      var node = item.node;
+      var type = item.type;
+      var props = Array.isArray(resourceMap[type]) ? resourceMap[type] : [resourceMap[type]];
+      props.forEach(function (prop) {
+        resetNodeResource(node, type, prop['prop'], node.getAttribute(prop['definedProp']));
       })
     })
   }
@@ -201,9 +211,6 @@
     props.forEach(function (prop) {
       if (isDOMNode(node) && node.hasAttribute(prop['definedProp']) && compareURL(node.getAttribute(prop['definedProp']), url)) {
         setAttribute(node, type, prop['prop'], objectURL);
-        node.onload = function () {
-          urlCreator.revokeObjectURL(objectURL);
-        }
       }
     })
   }
@@ -230,10 +237,12 @@
 
   function setAttribute(node, type, prop, url) {
     if (!isDOMNode(node))return;
-    // node.setAttribute(prop || 'src', url);
     node[prop || 'src'] = url;
     // load video or audio
     if (type === 'audio' || type === 'video') {
+      node.addEventListener('loadeddata', function () {
+        isDataURL(url) && urlCreator.revokeObjectURL(url);
+      })
       if (node.paused === false) {
         // 播放的资源保持播放状态
         node.pause();
@@ -242,16 +251,26 @@
       } else {
         node.load();
       }
+      return;
     }
     if (type === 'source' || type === 'track') {
-      if (node.parentNode && node.parentNode.paused === false) {
-        node.parentNode.pause();
-        node.parentNode.load();
-        node.parentNode.play();
+      var parentNode = node.parentNode;
+      if (!parentNode)return;
+      parentNode.addEventListener('loadeddata', function () {
+        isDataURL(url) && urlCreator.revokeObjectURL(url);
+      })
+      if (parentNode.paused === false) {
+        parentNode.pause();
+        parentNode.load();
+        parentNode.play();
       } else {
-        node.parentNode && node.parentNode.load();
+        parentNode && node.parentNode.load();
       }
+      return;
     }
+    node.addEventListener('load', function () {
+      isDataURL(url) && urlCreator.revokeObjectURL(url);
+    })
   }
 
   /**
@@ -302,7 +321,18 @@
    * @returns {boolean}
    */
   function compareURL(a, b) {
-    return generateAbsoluteUrl(a).toLowerCase() === generateAbsoluteUrl(b).toLowerCase();
+    return window.checkURIs(generateAbsoluteUrl(a), generateAbsoluteUrl(b));
+  }
+
+
+  /**
+   * Detecting data URLs
+   * @param url
+   * @returns {boolean}
+   */
+  function isDataURL(url) {
+    var regex = /^\s*data:([a-z]+\/[a-z]+(;[a-z\-]+\=[a-z\-]+)?)?(;base64)?,[a-z0-9\!\$\&\'\,\(\)\*\+\,\;\=\-\.\_\~\:\@\/\?\%\s]*\s*$/i;
+    return !!url.match(regex);
   }
 
   /**
@@ -311,7 +341,11 @@
    * @returns {boolean}
    */
   function isDOMNode(node) {
-    return !!node.nodeName;
+    var result = !!node.nodeName;
+    if (result === false) {
+      console.log('不正确的 DOM 节点：', node);
+    }
+    return result;
   }
 
   /**
@@ -327,4 +361,4 @@
     };
   };
 
-})()
+})(window, document)
