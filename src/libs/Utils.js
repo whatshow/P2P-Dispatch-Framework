@@ -34,9 +34,9 @@
                             resolve();
                         }
                     }).then(function(){
-                            //遍历下一次循环
-                            return window.ppdf.Utils.loop(objs, callback, index + 1);
-                        });
+                        //遍历下一次循环
+                        return window.ppdf.Utils.loop(objs, callback, index + 1);
+                    });
                 }
             }
         };

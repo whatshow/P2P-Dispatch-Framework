@@ -243,10 +243,13 @@ window.ppdf.p2p.PeerClient.prototype.prepareAnswer = function(){
     var blob;
     receiveChannel.onmessage = function(e){
       blob = new Blob([event.data]);
-    };
-    receiveChannel.onclose = function(){
+      //关闭数据传输通道
+      receiveChannel.close();
       //释放客户端，因为传入了参数，执行任务的成功回调
       client.releaseImmediately(blob);
+    };
+    receiveChannel.onclose = function(){
+      //client.releaseImmediately(blob);
     }
   };
 };

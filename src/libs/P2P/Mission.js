@@ -13,8 +13,8 @@
     this.md5 = md5;
     this.targetAddressList = targetAddressList;
     this.curTargetAddressIndex = -1;                   //当前采用的数据提供者
-    this.succeed = function(){
-      succeed();
+    this.succeed = function(data){
+      succeed(data);
       //清除所有信息，防止多次执行
       this.clear();
     };

@@ -78,6 +78,8 @@
           return true;
         }else if(missionQueue.length >= setting.maxMissions){
           //队列长度满了，丢弃任务
+          //触发任务失败回调
+          mission.fail();
           return false;
         }else{
           //任务队列不满，则将任务放到任务队列中
@@ -86,9 +88,9 @@
         }
       }
       //执行到此说明客户端构造成功，则把任务绑定到客户端中
-      client.setOnIceCandidate(function(candidate){
-        //在
-      });
+      // client.setOnIceCandidate(function(candidate){
+      //   //在
+      // });
       window.ppdf.p2p.PeerClientPool.doMission(client, mission);
       return true;
     },

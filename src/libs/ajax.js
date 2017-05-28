@@ -9,7 +9,28 @@
             default:{
                 timeout:    10000               //默认10秒连接断开
             },
-
+            /**
+             * 检查是否支持ajax
+             */
+            check:  function(){
+              if(window.ActiveXObject){
+                var ieAjaxTypes = ["MSXML2.XMLHttp.6.0","MSXML2.XMLHttp.5.0", "MSXML2.XMLHttp.4.0","MSXML2.XMLHttp.3.0","MSXML2.XMLHttp","Microsoft.XMLHttp"];
+                for(var ieAjaxTypes_index = 0; ieAjaxTypes_index < ieAjaxTypes.length; ieAjaxTypes_index++) {
+                  try{
+                    window.ppdf.ajax.xmlhttp = new ActiveXObject(ieAjaxTypes[ieAjaxTypes_index]);
+                    return true;
+                  }catch(e){}
+                }
+              }else{
+                try {
+                  window.ppdf.ajax.xmlhttp = new XMLHttpRequest();
+                  resolve();
+                }catch(e){
+                  //执行到此说明无论如何都无法开启ajax
+                  reject(new window.ppdf.Utils.Error(40041, "无法开启ajax", null));
+                }
+              }
+            },
             /**
              * 初始化ajax请求
              */
