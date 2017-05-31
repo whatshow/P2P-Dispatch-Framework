@@ -109,6 +109,15 @@
                   resolve(this.result);
                 }
               });
+            },
+            /**
+             * 计算二进制的md5
+             * @binary
+             */
+            md5:  function(binary){
+              var spark = new SparkMD5.ArrayBuffer();
+              spark.append(binary);
+              return spark.end();
             }
         };
         //ajax

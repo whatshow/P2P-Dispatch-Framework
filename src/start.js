@@ -71,16 +71,32 @@
                 //修改本地数据索引
                 global.catalog.push({ url: url, md5: md5 });
                 //通知信令服务器增加资源
-                
-                
+                window.ppdf.signal.send({
+                  code:     3204,
+                  data:{
+                    url:    url,
+                    md5:    md5
+                  }
+                });
               });
               //p2p组装资源　
               res.data.reqs.forEach(function(one) {
-                window.ppdf.p2p.Mission(one.url, '', one.clients, function(data) {
-                  window.ppdf.DOMManager.replacePageResource(one.url, data);
-                  //
-                  
-                  //
+                window.ppdf.p2p.Mission(one.url, '', one.clients, function(blob) {
+                  window.ppdf.DOMManager.replacePageResource(one.url, blob);
+                  //计算md5
+                  var md5 = window.ppdf.file.md5(window.ppdf.file.blob2binary(blob));
+                  //把数据写入数据库
+                  window.ppdf.database.addData({ url: one.url, md5: md5, data: blob });
+                  //修改本地数据索引
+                  global.catalog.push({ url: one.url, md5: md5 });
+                  //通知信令服务器增加资源
+                  window.ppdf.signal.send({
+                    code:     3204,
+                    data:{
+                      url:    one.url,
+                      md5:    md5
+                    }
+                  });
                 }, function() {
                   window.ppdf.DOMManager.onResourceLoadFailed(one.url);
                 });
