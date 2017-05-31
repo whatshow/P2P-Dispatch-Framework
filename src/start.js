@@ -49,12 +49,13 @@
       window.ppdf.signal.send(JSON.stringify(msg));
       console.log("通知远程服务器");
       console.log(msg);
+      console.log("进入等待状态");
       //注册回调
       window.ppdf.signal.addController(function(res) {
         switch(parseInt(res.code)){
             case 1001:
-              console.warn("1001");
-              console.log(res);
+              console.log("1001 准备丢弃资源");
+              console.log(res.data);
               //过滤目录
               res.data.forEach(function(url) {
                   window.ppdf.database.deleteData(url);
@@ -70,12 +71,15 @@
               });
               //没有的资源通知服务器
               window.ppdf.DOMManager.collectPageResource(function(data) {
-                  window.ppdf.signal.send({
-                      code: 3002,
-                      data: data.map(function(one) {
-                          return one.url
-                      })
-                  });
+                var msg = {
+                  code: 3002,
+                  data: data.map(function(one) {
+                    return one.url
+                  })
+                };
+                console.log("向服务器发送报文");
+                console.log(msg);
+                window.ppdf.signal.send();
               });
               break;
         }

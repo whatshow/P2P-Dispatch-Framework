@@ -40,12 +40,15 @@
         //增加调用
         if (window.ppdf.signal.client) {
           window.ppdf.signal.client.onmessage = function(e) {
+            var param;
+            try{
+              param = JSON.parse(e.data);
+            }catch(e){
+              param = e.data;
+            }
+            //执行参数
             for (var i = 0; i < window.ppdf.signal.controllers.length; i++) {
-              try{
-                  window.ppdf.signal.controllers[i](JSON.parse(e.data));
-              }catch(e){
-                  window.ppdf.signal.controllers[i](e.data);
-              }
+              window.ppdf.signal.controllers[i](param);
             }
           }
         }
