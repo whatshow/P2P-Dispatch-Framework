@@ -41,7 +41,11 @@
         if (window.ppdf.signal.client) {
           window.ppdf.signal.client.onmessage = function(e) {
             for (var i = 0; i < window.ppdf.signal.controllers.length; i++) {
-              window.ppdf.signal.controllers[i](e.data);
+              try{
+                  window.ppdf.signal.controllers[i](JSON.parse(e.data));
+              }catch(e){
+                  window.ppdf.signal.controllers[i](e.data);
+              }
             }
           }
         }
@@ -102,7 +106,7 @@
         if (!window.ppdf.signal.client || !str) {
           return false;
         } else {
-          window.ppdf.signal.client.send(typeof str === 'string' ? JSON.stringify(str) : str);
+          window.ppdf.signal.client.send(str);
         }
       }
     };

@@ -79,7 +79,7 @@ window.ppdf.p2p.PeerClient.prototype.releaseImmediately = function(data){
 /**
  * 中断释放客户端(执行后客户端为空则失败)
  */
-window.ppdf.PeerClient.prototype.cutRelease = function(){
+window.ppdf.p2p.PeerClient.prototype.cutRelease = function(){
   //强制取消之前的释放函数
   try{
     clearTimeout(this.release);
@@ -91,7 +91,7 @@ window.ppdf.PeerClient.prototype.cutRelease = function(){
 /**
  * 是否为空（obj对象是否为null）
  */
-window.ppdf.PeerClient.prototype.isEmpty = function(){
+window.ppdf.p2p.PeerClient.prototype.isEmpty = function(){
   if(this.obj == null){
     return true;
   }else{
@@ -101,7 +101,7 @@ window.ppdf.PeerClient.prototype.isEmpty = function(){
 /**
  * 重新构造客户端
  */
-window.ppdf.PeerClient.prototype.rebuild = function(){
+window.ppdf.p2p.PeerClient.prototype.rebuild = function(){
   var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
   this.obj = new RTCPeerConnection(window.ppdf.config.p2p);     //p2p对象
   //重新设置过期时间

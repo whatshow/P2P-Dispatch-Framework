@@ -24,10 +24,10 @@
               }else{
                 try {
                   window.ppdf.ajax.xmlhttp = new XMLHttpRequest();
-                  resolve();
+                  return true;
                 }catch(e){
                   //执行到此说明无论如何都无法开启ajax
-                  reject(new window.ppdf.Utils.Error(40041, "无法开启ajax", null));
+                  return false;
                 }
               }
             },

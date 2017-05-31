@@ -360,6 +360,6 @@
       a.href = url;
       return a.href;
     };
-  };
+  }
   
-})(window, document)
+})(window, document);
