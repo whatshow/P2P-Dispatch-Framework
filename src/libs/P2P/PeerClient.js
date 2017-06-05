@@ -11,6 +11,7 @@ window.ppdf.p2p.PeerClient = function(live, onCandidate){
     this.setRelease();                                            //一旦创建就会发生释放
     this.mission = null;                                          //任务
     this.targetAddress = null;                                    //对方地址
+    this.targetTimestamp = null;                                  //对方时间戳
   
     this.timestamp = new Date().valueOf();                        //时间戳，用来唯一标识一个客户端
   
@@ -46,11 +47,13 @@ window.ppdf.p2p.PeerClient.prototype.setRelease = function(timeout){
  * @data              数据(如果传入了数据，则执行任务的成功回调；如果不传，则执行任务的失败回调)
  */
 window.ppdf.p2p.PeerClient.prototype.releaseImmediately = function(data){
+  console.error("客户端被释放");
+
   //释放发送数据通道
   try{
-    this.obj.sendChannel.close();
+    this.sendChannel.close();
   }catch(e){}
-  this.obj.sendChannel = null;
+  this.sendChannel = null;
   
   //释放p2p客户端
   try{
@@ -171,8 +174,8 @@ window.ppdf.p2p.PeerClient.prototype.bindTargetAddress = function(targetAddress)
  * @url                   数据的url表示
  */
 window.ppdf.p2p.PeerClient.prototype.prepareOffer = function(url){
-  var peerclient = this.obj;
-  return new Promise(function(resovle, reject){
+  var peerclient = this;
+  return new Promise(function(resolve, reject){
     window.ppdf.database.getData(url).then(function(dbRes){
       //获取了数据
       var blob = dbRes.data;
@@ -184,19 +187,28 @@ window.ppdf.p2p.PeerClient.prototype.prepareOffer = function(url){
           console.warn("创建传输通道发生错误，代码写错了");
         }
       }
-      
-      peerclient.sendChannel = peerclient.createDataChannel('sendDataChannel');
+
+      peerclient.sendChannel = peerclient.obj.createDataChannel('sendDataChannel');
       peerclient.sendChannel.binaryType = 'arraybuffer';
       //当客户端打开时
-      peerclient.sendChannel.onopen = function(e){
-        window.ppdf.Utils.file.blob2binary(blob).then(function(binaryData){
-          peerclient.sendChannel.send(binaryData);
-        });
-        //此时数据传输已经完成，释放客户端
-        peerclient.releaseImmediately();
+      peerclient.sendChannel.onopen = function(){
+        if( peerclient.sendChannel.readyState === "open"){
+            console.log(peerclient.obj.sendChannel);
+            console.log("传输通道开启，开始传输");
+            window.ppdf.Utils.file.blob2binary(blob).then(function(binaryData){
+                console.log("获得了二进制数据");
+                peerclient.sendChannel.send(binaryData);
+
+                //此时数据传输已经完成，释放客户端
+                //peerclient.releaseImmediately();
+            }).catch(function(e){
+              console.log(e);
+            });
+        }
       };
       //当客户端关闭时
       peerclient.sendChannel.onclose = function(e){};
+      resolve();
     }).catch(function(error){
       //获取数据失败
       reject(error);
@@ -220,7 +232,7 @@ window.ppdf.p2p.PeerClient.prototype.createOffer = function(){
       client.createOffer().then(
           function gotDescription(desc){
               //保存描述
-              ppdf.p2p.client.setLocalDescription(desc);
+              client.setLocalDescription(desc);
               //传递自我描述
               resolve(desc);
           },
@@ -234,6 +246,7 @@ window.ppdf.p2p.PeerClient.prototype.createOffer = function(){
  * 准备响应
  */
 window.ppdf.p2p.PeerClient.prototype.prepareAnswer = function(){
+  var peerclient = this;
   var client = this.obj;
   //构建接受通道
   client.ondatachannel = function(e) {
@@ -242,11 +255,13 @@ window.ppdf.p2p.PeerClient.prototype.prepareAnswer = function(){
     receiveChannel.binaryType = 'arraybuffer';
     var blob;
     receiveChannel.onmessage = function(e){
+      console.log('接收通道开启，开始接收');
+
       blob = new Blob([event.data]);
       //关闭数据传输通道
       receiveChannel.close();
       //释放客户端，因为传入了参数，执行任务的成功回调
-      client.releaseImmediately(blob);
+        peerclient .releaseImmediately(blob);
     };
     receiveChannel.onclose = function(){
       //client.releaseImmediately(blob);
@@ -287,7 +302,9 @@ window.ppdf.p2p.PeerClient.prototype.answerDesc = function(desc){
  * @desc              描述信息
  */
 window.ppdf.p2p.PeerClient.prototype.storeAnswerDesc = function(desc){
-  return new Promise(function(resovle, reject){
+  var client = this.obj;
+
+  return new Promise(function(resolve, reject){
     //如果对象为空，则爆出空指针
     if(!client){
       reject("ERROR: NULL POINT");
@@ -295,7 +312,8 @@ window.ppdf.p2p.PeerClient.prototype.storeAnswerDesc = function(desc){
     }
     
     //执行到此说明一切正常，则继续
-    this.obj.setRemoteDescription(desc);
+    client.setRemoteDescription(desc);
+    resolve();
   });
 };
 /**
@@ -312,7 +330,6 @@ window.ppdf.p2p.PeerClient.prototype.setCandidate = function(candidate){
  */
 window.ppdf.p2p.PeerClient.prototype.setOnIceCandidate = function(callback){
   var peerclient = this;
-  
   //如果存在回调，则使用自定义回调
   if(callback && typeof callback == 'function'){
     this.obj.onicecandidate = function(e) {
@@ -325,52 +342,64 @@ window.ppdf.p2p.PeerClient.prototype.setOnIceCandidate = function(callback){
   
   //指定到此则采用默认回调
   this.obj.onicecandidate = function(e) {
+    var msg;
+
     if(e.candidate){
+      console.warn("--------发送候选信息");
       //检查自己是offer还是answer
       switch(this.localDescription.type){
         case 'offer':
           //发送候选信息
-          window.ppdf.signal.send(JSON.stringify({
-            code:         3005,
-            data:{
-              offer:  {
-                //时间戳
-                timestamp:  peerclient.timestamp,
-                //资源描述
-                desc:       this.localDescription,
-                //候选信息
-                candidate:  e.candidate
-              },
-              answer: {
-                //资源描述
-                desc:       this.remoteDescription,
-                //IP地址
-                address:    peerclient.targetAddress
+          msg = {
+              code: 3005,
+              data: {
+                  offer: {
+                      //时间戳
+                      timestamp: peerclient.timestamp,
+                      //资源描述
+                      desc: this.localDescription,
+                      //候选信息
+                      candidate: e.candidate
+                  },
+                  answer: {
+                      //时间戳
+                      timestamp:  peerclient.targetTimestamp,
+                      //资源描述
+                      desc: this.remoteDescription,
+                      //IP地址
+                      address: peerclient.targetAddress
+                  }
               }
-            }
-          }));
+          };
+          console.log('发送候选信息');
+          console.log(msg);
+          window.ppdf.signal.send(JSON.stringify(msg));
           break;
         case 'answer':
           //发送候选信息
-          window.ppdf.signal.send(JSON.stringify({
-            code:         3005,
-            data:{
-              offer:  {
-                //资源描述
-                desc:       this.remoteDescription,
-                //IP地址
-                address:    peerclient.targetAddress
-              },
-              answer: {
-                //时间戳
-                timestamp:  peerclient.timestamp,
-                //资源描述
-                desc:       this.localDescription,
-                //候选信息
-                candidate:  e.candidate
+          msg = {
+              code:         3005,
+              data:{
+                  offer:  {
+                      //时间戳
+                      timestamp:  peerclient.targetTimestamp,
+                      //资源描述
+                      desc:       this.remoteDescription,
+                      //IP地址
+                      address:    peerclient.targetAddress
+                  },
+                  answer: {
+                      //时间戳
+                      timestamp:  peerclient.timestamp,
+                      //资源描述
+                      desc:       this.localDescription,
+                      //候选信息
+                      candidate:  e.candidate
+                  }
               }
-            }
-          }));
+          };
+          console.log('发送候选信息');
+          console.log(msg);
           break;
       }
     }

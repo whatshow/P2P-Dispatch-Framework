@@ -74,67 +74,85 @@
                 var msg = {
                   code: 3002,
                   data: data.map(function(one) {
-                    return one.url
+                    //过滤本地已经存在的资源
+                    var exist = false;
+                    for(var i = 0; i < global.catalog.length; i++){
+                      if(global.catalog[i].url == one.url){
+                        exist = true;
+                        break;
+                      }
+                    }
+                    if(!exist){
+                        return one.url
+                    }
                   })
                 };
                 console.log("向服务器发送报文");
                 console.log(msg);
-                window.ppdf.signal.send();
+                window.ppdf.signal.send(JSON.stringify(msg));
               });
               break;
+            case 1002:
+                console.log("1002 资源提供者");
+                console.log(res.data);
+                //ajax下载资源
+                res.data.notFindResources.forEach(function(url) {
+                    window.ppdf.ajax.acquireBlob(url).then(function (ajax) {
+                        //获取数据
+                        var data = ajax.response;
+                        var md5 = ajax.getResponseHeader("md5");
+                        var url = ajax.responseURL;
+                        //把资源添加到dom
+                        window.ppdf.DOMManager.replacePageResource(url, data);
+                        //把数据写入数据库
+                        window.ppdf.database.addData({url: url, md5: md5, data: data});
+                        //修改本地数据索引
+                        global.catalog.push({url: url, md5: md5});
+                        //通知信令服务器增加资源
+                        var msg = {
+                            code: 3204,
+                            data: {
+                                url: url,
+                                md5: md5
+                            }
+                        };
+                        console.log("通知服务器更新资源 " + JSON.stringify(msg));
+                        window.ppdf.signal.send(JSON.stringify(msg));
+                    });
+                });
+                //p2p下载资源
+                res.data.reqs.forEach(function(one) {
+                    //构造任务
+                    var mission = new window.ppdf.p2p.Mission(one.url, '', one.clients, function(blob) {
+                        window.ppdf.DOMManager.replacePageResource(one.url, blob);
+                        //计算md5
+                        // var md5 = window.ppdf.file.md5(window.ppdf.file.blob2binary(blob));
+                        // //把数据写入数据库
+                        // window.ppdf.database.addData({ url: one.url, md5: md5, data: blob });
+                        // //修改本地数据索引
+                        // global.catalog.push({ url: one.url, md5: md5 });
+                        // //通知信令服务器增加资源
+                        // var msg = {
+                        //     code:     3204,
+                        //     data:{
+                        //         url:    one.url,
+                        //         md5:    md5
+                        //     }
+                        // };
+                        // window.ppdf.signal.send(JSON.stringify(msg));
+                        // console.log("通知服务器更新资源 " + JSON.stringify(msg));
+                    }, function() {
+                        console.error("任务失败");
+                        window.ppdf.DOMManager.onResourceLoadFailed(one.url);
+                    });
+                    console.log("构造了任务");
+                    console.log(mission);
+
+                    //执行任务
+                    window.ppdf.p2p.PeerClientPool.addMission(mission);
+                });
+              break;
         }
-        // switch (parseInt(res.code)){
-        //     case 1002:
-        //       console.warn("1002");
-        //       console.log(res);
-        //
-        //       res.data.notFindResources.forEach(function(url) {
-        //           window.ppdf.ajax.acquireBlob(url).then(function(ajax) {
-        //               //获取数据
-        //               var data = ajax.response;
-        //               var md5 = ajax.getResponseHeader("md5");
-        //               var url = ajax.responseURL;
-        //               //把资源添加到dom
-        //               window.ppdf.DOMManager.replacePageResource(url, data);
-        //               //把数据写入数据库
-        //               window.ppdf.database.addData({ url: url, md5: md5, data: data });
-        //               //修改本地数据索引
-        //               global.catalog.push({ url: url, md5: md5 });
-        //               //通知信令服务器增加资源
-        //               window.ppdf.signal.send({
-        //                   code:     3204,
-        //                   data:{
-        //                       url:    url,
-        //                       md5:    md5
-        //                   }
-        //               });
-        //           });
-        //           //p2p组装资源　
-        //           res.data.reqs.forEach(function(one) {
-        //               window.ppdf.p2p.Mission(one.url, '', one.clients, function(blob) {
-        //                   window.ppdf.DOMManager.replacePageResource(one.url, blob);
-        //                   //计算md5
-        //                   var md5 = window.ppdf.file.md5(window.ppdf.file.blob2binary(blob));
-        //                   //把数据写入数据库
-        //                   window.ppdf.database.addData({ url: one.url, md5: md5, data: blob });
-        //                   //修改本地数据索引
-        //                   global.catalog.push({ url: one.url, md5: md5 });
-        //                   //通知信令服务器增加资源
-        //                   window.ppdf.signal.send({
-        //                       code:     3204,
-        //                       data:{
-        //                           url:    one.url,
-        //                           md5:    md5
-        //                       }
-        //                   });
-        //               }, function() {
-        //                   window.ppdf.DOMManager.onResourceLoadFailed(one.url);
-        //               });
-        //           })
-        //
-        //       });
-        //       break;
-        // }
       });
     }).catch(function(error) {
       switch (error.code) {

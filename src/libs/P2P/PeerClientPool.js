@@ -7,8 +7,8 @@
   
   //配置
   var setting = {
-    peerClientLive:           3000,               //一个客户端默认生成3000ms
-    maxPeerClients:           10,                 //客户度最大数量
+    peerClientLive:           20000,               //一个客户端默认生成10000ms
+    maxPeerClients:           10,                  //客户度最大数量
   
     //最大任务数量
     maxMissions:              NO_LIMIT_MISSIONQUEUE
@@ -29,6 +29,7 @@
     init: function(){
       //增加控制器
       window.ppdf.signal.addController(function(res){
+        console.log(res);
         switch(parseInt(res.code)){
           //收到提供描述信息
           case 1003:
@@ -72,6 +73,7 @@
       }
       //如果构造失败，则说明任务并发达到最高，则把任务添加到队列
       if(!client){
+        console.log("把任务添加到队列");
         if(setting.maxMissions == NO_LIMIT_MISSIONQUEUE){
           //不限制队列长度，直接添加
           missionQueue.push(mission);
@@ -88,9 +90,10 @@
         }
       }
       //执行到此说明客户端构造成功，则把任务绑定到客户端中
-      // client.setOnIceCandidate(function(candidate){
-      //   //在
-      // });
+      console.log("执行任务");
+      console.log(mission);
+      console.warn("线程池情况");
+      console.log(pool);
       window.ppdf.p2p.PeerClientPool.doMission(client, mission);
       return true;
     },
@@ -120,25 +123,46 @@
       if(client.cutRelease()){
         //执行到此说明中断成功，则返回结果
         var address = mission.getNextProviderAddress();
-        window.ppdf.signal.send(JSON.stringify({
-          code:   3201,
-          data:   {
-            url:          mission.url,
-            offer:  {
-              //IP地址
-              address:    address
-            },
-            answer: {
-              //时间戳
-              timestamp:  client.getTimestamp()
+        //如果没有地址，则结束
+        if(!address){
+          client.releaseImmediately();
+          return;
+        }
+
+        var msg = {
+            code:   3201,
+            data:   {
+                url:          mission.url,
+                offer:  {
+                    //IP地址
+                    address:    address
+                },
+                answer: {
+                    //时间戳
+                    timestamp:  client.getTimestamp()
+                }
             }
-          }
-        }));
+        };
+        window.ppdf.signal.send(JSON.stringify(msg));
+        console.log('发送数据索取请求 ' + JSON.stringify(msg));
         //绑定地址
         client.bindTargetAddress(address);
         //开始客户端对象释放计算时间
         client.setRelease();
       }
+    },
+    /**
+     * 根据对象寻找客户端
+     * @obj
+     */
+    findPeerClientByObj:  function(obj){
+        for(var i = 0; i < pool.length; i++){
+            if(pool[i].obj === obj && !pool[i].isEmpty()){
+                return pool[i];
+            }else if(i === pool.length - 1){
+                return null;
+            }
+        }
     },
     /**
      * 根据时间戳寻找客户端
@@ -187,6 +211,11 @@
      * 寻找可用客户端
      */
     findUsefulClient: function(){
+      if(pool.length == 0){
+        return null;
+      }
+
+      //如果有可用的客户端，则返回一个新的
       for(var i = 0; i < pool.length; i ++){
         if(pool[i].isEmpty()){
           //找到了空闲的客户度，则重新激活，并返回这个客户端给
@@ -205,6 +234,7 @@
      * @data            websocket返回对象中的data字段
      */
     transfer: function(data){
+      console.warn("*** 开启传输***");
       return new Promise(function(resolve, reject){
         //先寻找空闲客户端
         var client = window.ppdf.p2p.PeerClientPool.findUsefulClient();
@@ -212,6 +242,11 @@
         if(!client){
           client = window.ppdf.p2p.PeerClientPool.addClient();
         }
+        console.log("客户端");
+        console.log(client);
+        console.log("线程池");
+        console.log(pool);
+
         //如果构造失败，则说明任务并发达到最高，则拒绝本次传输
         if(!client){
           reject(window.ppdf.Error(40022, "拒绝提供数据传输服务（本地线程并发达到最高，再并发影响效率）", null));
@@ -225,22 +260,35 @@
         }
         
         //执行到此说明，可用获取到一个可用的客户端
+        console.log("得到了一个可用的客户端");
+        console.log(client);
         //绑定对方地址
         client.bindTargetAddress(data.answer.address);
+        //绑定对方时间戳
+        client.targetTimestamp = data.answer.timestamp;
         //准备描述
         client.prepareOffer(data.url).then(function(){
+          console.log();
+
           //构造提供描述
           return client.createOffer();
         }).then(function(desc){
+          console.log("获得了描述对象");
+          console.log(desc);
           //配置描述 & 时间戳
           data.offer.desc = desc;
           data.offer.timestamp = client.getTimestamp();
+          console.log("配置发送数据");
+          console.log(data);
           //发送提供描述
-          window.ppdf.signal.send(JSON.stringify({
-            code:             3202,
-            data:             data
-          }));
+          var msg = {
+              code:             3003,
+              data:             data
+          };
+          window.ppdf.signal.send(JSON.stringify(msg));
+          console.log("通知提供描述 " + JSON.stringify(msg));
         }).catch(function(e){
+          console.log(window.ppdf.Error(40023, "未知原因拒绝提供数据", e));
           //提供描述失败，通知对方
           reject(window.ppdf.Error(40023, "未知原因拒绝提供数据", e));
           //通知拒绝服务
@@ -312,37 +360,50 @@
      * @data          websocket返回对象中的data字段
      */
     onOfferDesc:  function(data){
+      console.log("收到提供描述");
+      console.log(data);
+
       var i;
       
       //寻找到本地的客户端
       var client = this.findPeerClientByTimestamp(data.answer.timestamp);
       //如果没有找到客户端，说明这个连接已经被释放了，不再处理
       if(!client){
+        console.log("没有找到客户端，说明这个连接已经被释放了，不再处理");
         return;
       }
       
       //执行到此说明一切正常，则开始响应
+      console.log("执行到此说明一切正常，则开始响应");
       //中断释放过程：如果中断失败，则说明客户端已经释放过了，已经触发了任务失败
       if(client.cutRelease()){
+        //绑定时间戳
+        client.targetTimestamp = data.offer.timestamp;
         //准备响应数据通道
         client.prepareAnswer();
         //构造响应描述
-        client.answerDesc(data.offer.desc).then(function(){
+        client.answerDesc(data.offer.desc).then(function(desc){
           //响应描述成功
           data.answer.desc = desc;
-          window.ppdf.signal.send(JSON.stringify({
-            code:       3004,
-            data:       data
-          }));
+
+          var msg = {
+              code:       3004,
+              data:       data
+          };
+          window.ppdf.signal.send(JSON.stringify(msg));
+          console.log("发送响应描述 " + JSON.stringify(msg));
           client.setRelease();                                  //重新开始等待释放
         }).catch(function(e){
           //创建描述失败
           //发出终止数据请求
           data.answer.isAvailable = false;
-          window.ppdf.signal.send(JSON.stringify({
-            code:       3203,
-            data:       data
-          }));
+          var msg = {
+              code:       3203,
+              data:       data
+          };
+          window.ppdf.signal.send(JSON.stringify(msg));
+          console.log("创建answerDesc失败" + JSON.stringify(msg));
+          console.log(e);
           //尝试下一个数据提供者
           window.ppdf.p2p.PeerClientPool.doMission(client);
           client.setRelease();                                  //重新开始等待释放
@@ -375,10 +436,15 @@
      * @data          websocket
      */
     onCandidate:  function(data){
+      console.warn("收到候选信息");
+      console.log(data);
+      console.warn("客户端池子情况");
+      console.dir(pool);
       var client;
       //提供者发来的候选信息
       if(data.offer.candidate){
-        client = this.findPeerClientByDesc(data.answer.desc);
+        client = this.findPeerClientByTimestamp(data.answer.timestamp);
+        console.log(client);
         //如果找不到客户端，中止数据请求
         if(!client){
           data.answer.isAvailable = false;
@@ -389,12 +455,14 @@
           return;
         }
         //指定到此说明找到了客户端，保存数据
-        client.setCandidate(data.answer.candidate);
+        console.log("提供者发来的候选信息（已保存）");
+        client.setCandidate(data.offer.candidate);
       }
       
       //响应者发来的候选信息
       if(data.answer.candidate){
-        client = this.findPeerClientByDesc(data.offer.desc);
+        client = this.findPeerClientByTimestamp(data.offer.timestamp);
+        console.log(client);
         //如果找不到客户端，拒绝数据提供
         if(!client){
           data.offer.isAvailable = false;
@@ -405,9 +473,9 @@
           return;
         }
         //指定到此说明找到了客户端，保存数据
-        client.setCandidate(data.answer.candidate);
+          console.log("响应者发来的候选信息（已保存）");
+          client.setCandidate(data.answer.candidate);
       }
-      
     }
   };
 })();
