@@ -1,3 +1,6 @@
+import Config from "./config";
+import DomReady from "./libs/DomReady";
+
 (function() {
   /*** 全局变量 ***/
   var global = {

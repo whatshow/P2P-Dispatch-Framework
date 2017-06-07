@@ -1,0 +1,19 @@
+{
+  "presets": [
+    [
+      "env",
+      {
+        "targets": {
+          "browsers": [
+            "> 5% in US",
+            "> 5% in CN",
+            "last 2 versions",
+            "Firefox ESR",
+            "Firefox >= 20",
+            "safari >= 7"
+          ]
+        }
+      }
+    ]
+  ]
+}

@@ -5,18 +5,43 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "start": "grunt && grunt watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "webpack-dev-server --config webpack.config.js --progress",
+    "pack": "NODE_ENV=analyse webpack --config webpack.production.js --progress --hide-modules",
+    "dev": "webpack-dashboard -- webpack-dev-server --config webpack.config.js --progress",
+    "build": "webpack --config webpack.production.js --progress --hide-modules",
+    "analyse": "NODE_ENV=analyse webpack --config webpack.production.js --progress --hide-modules",
+    "preview": "webpack-dashboard -- webpack-dev-server --config webpack.production.js"
   },
-  "author": "",
+  "author": "Qu XinWei & Chen Da",
   "license": "Apache 2.0",
   "devDependencies": {
-    "grunt": "^1.0.1",
-    "grunt-cli": "^1.2.0",
-    "grunt-contrib-clean": "^1.1.0",
-    "grunt-contrib-concat": "^1.0.1",
-    "grunt-contrib-jshint": "^1.1.0",
-    "grunt-contrib-uglify": "^2.3.0",
-    "grunt-contrib-watch": "^1.0.0"
+    "babel-core": "^6.24.1",
+    "babel-loader": "^7.0.0",
+    "babel-preset-env": "^1.5.1",
+    "clean-webpack-plugin": "^0.1.16",
+    "css-loader": "^0.28.4",
+    "eslint": "^3.19.0",
+    "eslint-config-airbnb": "^15.0.1",
+    "eslint-import-resolver-webpack": "^0.8.1",
+    "eslint-loader": "^1.7.1",
+    "eslint-plugin-import": "^2.3.0",
+    "eslint-plugin-jsx-a11y": "^5.0.3",
+    "eslint-plugin-react": "^7.0.1",
+    "extract-text-webpack-plugin": "^2.1.0",
+    "file-loader": "^0.11.2",
+    "postcss-cssnext": "^2.11.0",
+    "postcss-import": "^10.0.0",
+    "postcss-loader": "^2.0.5",
+    "style-loader": "^0.18.2",
+    "url-loader": "^0.5.8",
+    "webpack": "^2.6.1",
+    "webpack-bundle-analyzer": "^2.8.2",
+    "webpack-dashboard": "^0.4.0",
+    "webpack-dev-server": "^2.4.5"
+  },
+  "dependencies": {
+    "axios": "^0.16.2",
+    "es6-promise": "^4.1.0"
   }
 }

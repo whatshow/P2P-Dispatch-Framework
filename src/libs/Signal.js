@@ -1,3 +1,72 @@
+import {} from '../config'
+import {Error} from './Error/Error';
+
+export class Signal{
+  constructor(){
+    //客户端
+    this.client = null;
+    //控制器（其实都是回调函数）
+    this.controllers = [];
+  }
+  
+  check(){
+    if(!window.WebSocket){
+      return true;
+    }else{
+      return false;
+    }
+  };
+  
+  connect = () => {
+    return new Promise((resolve, reject) => {
+      if (!Config && !Config.signal.server) {
+        //读取配置文件失败
+        reject(new Error(400111, "信号服务器未配置", null));
+      } else if (!this.check()) {
+        //不支持websocket
+        reject(new Error(400112, "不支持websocket", null));
+      } else {
+        this.client = new WebSocket(Config.signal.server);
+        this.client.onerror = (error) => {
+          this.client = null;
+          reject(new window.ppdf.Utils.Error(40013, "信号服务器连接失败", error));
+        };
+        window.ppdf.signal.client.onclose = function(e) {
+          window.ppdf.signal.client = null;
+          reject(new window.ppdf.Utils.Error(40014, "信号服器连接被关闭", e));
+        };
+        window.ppdf.signal.client.onopen = function() {
+          resolve();
+        }
+      }
+    });
+  };
+  
+  /**
+   * 增加消息处理函数
+   * @callback                回调函数
+   */
+  addController = (callback) => {
+    //增加处理函数
+    window.ppdf.signal.controllers.push(callback);
+    //增加调用
+    if (window.ppdf.signal.client) {
+      window.ppdf.signal.client.onmessage = function(e) {
+        var param;
+        try{
+          param = JSON.parse(e.data);
+        }catch(e){
+          param = e.data;
+        }
+        //执行参数
+        for (var i = 0; i < window.ppdf.signal.controllers.length; i++) {
+          window.ppdf.signal.controllers[i](param);
+        }
+      }
+    }
+  },
+}
+
 (function() {
   if (window.ppdf) {
     window.ppdf.signal = {
