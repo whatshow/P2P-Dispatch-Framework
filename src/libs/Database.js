@@ -1,26 +1,24 @@
 import Error from "./Error/Error";
-import { Promise } from 'es6-promise';
+import Promise from 'es6-promise';
+
+//配置
+let config = {
+    name:      "ppdf-data",
+    obj:       null,
+    tables:{
+        data:{
+            name: "data"
+        }
+    }
+};
+//数据库对象
+let db = null;
 
 export class Database{
-  constructor(){
-    //配置
-    this.config = {
-      name:      "ppdf-data",
-      obj:       null,
-      tables:{
-        data:{
-          name: "data"
-        }
-      }
-    };
-    //数据库对象
-    this.db = null;
-  }
-  
   /**
    * 检查是否支持
    */
-  check(){
+  static check(){
     return window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB;
   };
   
@@ -29,17 +27,17 @@ export class Database{
    * @resolve(database)                           获取数据库对象
    * @reject(error)                               获取报错信息
    */
-  initDB = () => {
+  static initDB(){
     return new Promise((resolve, reject) => {
       let indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB;
       let reqDB;
-      reqDB = indexedDB.open(this.config.name, 1);
+      reqDB = indexedDB.open(config.name, 1);
       reqDB.onerror = (e) => {
         //说明本地数据库已经存在，尝试重新打开
         reqDB = null;
-        reqDB = indexedDB.open(this.config.name, 2);
+        reqDB = indexedDB.open(config.name, 2);
         reqDB.onsuccess = (e) => {
-          this.db = reqDB.result;
+          db = reqDB.result;
           resolve();
         };
         reqDB.onerror = (e) => {
@@ -51,12 +49,12 @@ export class Database{
         //关闭数据库，重新打开升级数据库，尝试添加表
         reqDB.result.close();
         reqDB = null;
-        reqDB = indexedDB.open(this.config.name, 2);
+        reqDB = indexedDB.open(config.name, 2);
         reqDB.onupgradeneeded = function(e){
-          reqDB.result.createObjectStore(this.config.tables.data.name, {keyPath:"url"});
+          reqDB.result.createObjectStore(config.tables.data.name, {keyPath:"url"});
         };
         reqDB.onsuccess = (e) => {
-          this.db = reqDB.result;
+          db = reqDB.result;
           resolve();
         };
         reqDB.onerror = (e) => {
@@ -71,7 +69,7 @@ export class Database{
    * 获取所有数据
    * @type                            类型：all：含有blob类型的数据, catalog：不含有blob类型的数据，默认是catalog
    */
-  getAllData = (type) => {
+  static getAllData(type){
     return new Promise((resolve, reject) => {
       let reqCursor;
       let transaction_getAllData;
@@ -79,12 +77,12 @@ export class Database{
       let cursor;
       let data = [];
       
-      if(!this.db){
+      if(!db){
         reject(new Error(400321, "数据库未打开", null));
       } else{
         //尝试打开游标
-        transaction_getAllData =  this.db.transaction([this.config.tables.data.name], "readonly");
-        objectStore = transaction_getAllData.objectStore(this.config.tables.data.name);
+        transaction_getAllData = db.transaction([config.tables.data.name], "readonly");
+        objectStore = transaction_getAllData.objectStore(config.tables.data.name);
         reqCursor = objectStore.openCursor();
         reqCursor.onerror = (e) => {
           //打开游标失败，失败
@@ -115,19 +113,19 @@ export class Database{
    * 添加数据
    * @data                    数据
    */
-  addData = (data) =>{
+  static addData = (data) =>{
     return new Promise((resolve, reject) => {
       let transaction;
       let objectStore;
       let reqAdd;
       
-      if(! this.db){
-        reject(new ppdf.Utils.Error(400331, "数据库未创建", null));
+      if(! db){
+        reject(new Error(400331, "数据库未创建", null));
       }else if(!data){
-        reject(new ppdf.Utils.Error(400332, "数据传入为空", null));
+        reject(new Error(400332, "数据传入为空", null));
       }else{
-        transaction =  this.db.transaction([this.config.tables.data.name], "readwrite");
-        objectStore = transaction.objectStore(this.config.tables.data.name);
+        transaction =  db.transaction([config.tables.data.name], "readwrite");
+        objectStore = transaction.objectStore(config.tables.data.name);
         reqAdd = objectStore.put(data);
         reqAdd.onerror = (e) => {
           reject(new Error(400333, "数据添加失败", e));
@@ -144,19 +142,19 @@ export class Database{
    * 删除一条数据
    * @url                 数据连接
    */
-  deleteData = (url) => {
+  static deleteData = (url) => {
     let transaction;
     let objectStore;
     let reqDelete;
   
     return Promise((resolve, reject) => {
-      if(! this.db) {
+      if(! db) {
         reject(new Error(400341, "数据库未创建", null));
       }else if(!url){
         reject(new Error(400342, "数据地址没有传入", null));
       }else{
-        transaction = this.db.transaction([this.config.tables.data.name], "readwrite");
-        objectStore = transaction.objectStore(this.config.tables.data.name);
+        transaction = db.transaction([config.tables.data.name], "readwrite");
+        objectStore = transaction.objectStore(config.tables.data.name);
         reqDelete = objectStore.delete(url);
         reqDelete.onerror = (error) => {
           reject(new Error(400343, "删除数据失败", error));
@@ -172,19 +170,19 @@ export class Database{
    * 获取一条数据
    * @url
    */
-  getData = (url) => {
+  static getData = (url) => {
     let transaction;
     let objectStore;
     let reqGet;
     
     return new Promise((resolve, reject) => {
-      if(! this.db) {
+      if(! db) {
         reject(new Error(400351, "数据库未创建", null));
       }else if(!url) {
         reject(new Error(400352, "数据地址没有传入", null));
       }else{
-        transaction = this.data.transaction([this.config.tables.data.name], "readonly");
-        objectStore = transaction.objectStore(this.config.tables.data.name);
+        transaction = db.transaction([config.tables.data.name], "readonly");
+        objectStore = transaction.objectStore(config.tables.data.name);
         reqGet = objectStore.get(url);
         reqGet.onerror = (e) => {
           reject(new Error(400353, "数据不存在", e));
